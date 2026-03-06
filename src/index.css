@@ -1,96 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    /* PsiGestão Light Mode (WCAG AAA) */
+    --background: 210 25% 96%;
+    --foreground: 216 56% 10%;
+    
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 216 56% 10%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 216 56% 10%;
+    
+    --primary: 196 60% 20%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 216 56% 10%;
+    
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 10% 42%;
+    
+    --accent: 210 20% 96%;
+    --accent-foreground: 216 56% 10%;
+    
+    --destructive: 15 100% 27%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 216 12% 83%;
+    --input: 216 12% 83%;
+    --ring: 200 60% 25%;
+    --radius: 0.75rem;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Sidebar */
+    --sidebar-background: 216 56% 10%;
+    --sidebar-foreground: 213 20% 80%;
+    --sidebar-primary: 196 60% 20%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 216 30% 25%;
+    --sidebar-ring: 213 90% 60%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Custom tokens */
+    --success: 152 68% 20%;
+    --success-foreground: 0 0% 100%;
+    --success-bg: 149 80% 95%;
+    --success-border: 153 60% 72%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --warning: 36 80% 26%;
+    --warning-foreground: 0 0% 100%;
+    --warning-bg: 48 100% 96%;
+    --warning-border: 48 85% 76%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --info: 213 50% 24%;
+    --info-foreground: 0 0% 100%;
+    --info-bg: 213 100% 96%;
+    --info-border: 213 85% 75%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --status-error-text: 0 60% 30%;
+    --status-error-bg: 0 85% 97%;
+    --status-error-border: 0 90% 87%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --status-success-text: 142 55% 25%;
+    --status-success-bg: 149 80% 95%;
+    --status-success-border: 153 60% 72%;
 
-    --radius: 0.5rem;
+    --status-warning-text: 36 70% 26%;
+    --status-warning-bg: 48 100% 96%;
+    --status-warning-border: 48 85% 76%;
 
-    --sidebar-background: 0 0% 98%;
+    --status-info-text: 213 50% 24%;
+    --status-info-bg: 213 100% 96%;
+    --status-info-border: 213 85% 75%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --status-neutral-text: 217 19% 27%;
+    --status-neutral-bg: 220 14% 96%;
+    --status-neutral-border: 216 12% 83%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --text-link: 196 58% 19%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --background: 217 33% 11%;
+    --foreground: 213 27% 96%;
+    
+    --card: 215 25% 18%;
+    --card-foreground: 213 27% 96%;
+    
+    --popover: 215 25% 18%;
+    --popover-foreground: 213 27% 96%;
+    
+    --primary: 174 70% 50%;
+    --primary-foreground: 180 70% 8%;
+    
+    --secondary: 215 25% 18%;
+    --secondary-foreground: 213 27% 96%;
+    
+    --muted: 215 25% 18%;
+    --muted-foreground: 213 15% 68%;
+    
+    --accent: 215 25% 18%;
+    --accent-foreground: 213 27% 96%;
+    
+    --destructive: 0 73% 72%;
+    --destructive-foreground: 0 68% 10%;
+    
+    --border: 215 20% 25%;
+    --input: 215 20% 25%;
+    --ring: 199 90% 61%;
+    
+    --sidebar-background: 215 25% 18%;
+    --sidebar-foreground: 213 15% 68%;
+    --sidebar-primary: 174 70% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 215 20% 20%;
+    --sidebar-accent-foreground: 213 27% 96%;
+    --sidebar-border: 215 20% 20%;
+    --sidebar-ring: 199 90% 61%;
+
+    --success: 142 55% 64%;
+    --success-foreground: 142 50% 6%;
+    --success-bg: 145 60% 7%;
+    --success-border: 142 55% 25%;
+
+    --warning: 25 80% 65%;
+    --warning-foreground: 25 80% 5%;
+    --warning-bg: 25 70% 7%;
+    --warning-border: 36 70% 26%;
+
+    --info: 213 85% 75%;
+    --info-foreground: 213 50% 5%;
+    --info-bg: 213 50% 12%;
+    --info-border: 213 50% 24%;
+
+    --status-error-text: 0 85% 77%;
+    --status-error-bg: 0 70% 10%;
+    --status-error-border: 0 60% 30%;
+
+    --status-success-text: 142 60% 68%;
+    --status-success-bg: 145 60% 7%;
+    --status-success-border: 142 55% 25%;
+
+    --status-warning-text: 25 85% 72%;
+    --status-warning-bg: 25 70% 7%;
+    --status-warning-border: 36 70% 26%;
+
+    --status-info-text: 213 85% 75%;
+    --status-info-bg: 213 50% 12%;
+    --status-info-border: 213 50% 24%;
+
+    --status-neutral-text: 216 12% 83%;
+    --status-neutral-bg: 217 19% 15%;
+    --status-neutral-border: 217 19% 27%;
+
+    --text-link: 199 90% 61%;
   }
 }
 
@@ -98,8 +166,41 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 }
+
+/* Focus states (WCAG AAA) */
+*:focus-visible {
+  outline: 3px solid hsl(var(--ring)) !important;
+  outline-offset: 2px !important;
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-up { animation: fadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+.animate-slide-in-right { animation: slideInRight 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+
+.stagger-1 { animation-delay: 100ms; opacity: 0; }
+.stagger-2 { animation-delay: 200ms; opacity: 0; }
+.stagger-3 { animation-delay: 300ms; opacity: 0; }
+.stagger-4 { animation-delay: 400ms; opacity: 0; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 4px; }
