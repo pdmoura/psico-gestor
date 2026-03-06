@@ -30,34 +30,47 @@ export const AuthView = ({ onLogin }: AuthViewProps) => {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left: Illustration */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden items-center justify-center p-12">
-        <div className="absolute top-[-50%] left-[-30%] w-[600px] h-[600px] rounded-full bg-primary-foreground/5" />
-        <div className="absolute bottom-[-40%] right-[-20%] w-[500px] h-[500px] rounded-full bg-primary-foreground/5" />
+      {/* Left: Dark teal illustration panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-12"
+        style={{ background: "linear-gradient(160deg, hsl(200 30% 14%), hsl(210 35% 12%))" }}
+      >
+        {/* Subtle background circles */}
+        <div className="absolute top-[-20%] left-[-15%] w-[500px] h-[500px] rounded-full" style={{ background: "rgba(255,255,255,0.02)" }} />
+        <div className="absolute bottom-[-25%] right-[-10%] w-[400px] h-[400px] rounded-full" style={{ background: "rgba(255,255,255,0.02)" }} />
 
         <div className="relative z-10 text-center max-w-md animate-fade-up">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-primary-foreground/20 flex items-center justify-center text-primary-foreground font-bold text-2xl">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-3 mb-12">
+            <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-white font-bold text-2xl">
               P
             </div>
-            <span className="text-2xl font-bold text-primary-foreground">PsiGestão</span>
+            <span className="text-2xl font-bold text-white">PsiGestão</span>
           </div>
 
-          {/* Simple illustration */}
-          <svg viewBox="0 0 300 200" className="w-full max-w-xs mx-auto mb-8">
-            <rect x="50" y="30" width="200" height="140" rx="12" fill="currentColor" className="text-primary-foreground/10" />
-            <rect x="70" y="50" width="80" height="10" rx="5" fill="currentColor" className="text-primary-foreground/30" />
-            <rect x="70" y="70" width="120" height="8" rx="4" fill="currentColor" className="text-primary-foreground/20" />
-            <rect x="70" y="90" width="100" height="8" rx="4" fill="currentColor" className="text-primary-foreground/20" />
-            <circle cx="220" cy="60" r="20" fill="currentColor" className="text-primary-foreground/15" />
-            <rect x="70" y="120" width="60" height="30" rx="8" fill="currentColor" className="text-primary-foreground/25" />
-            <rect x="140" y="120" width="60" height="30" rx="8" fill="currentColor" className="text-primary-foreground/15" />
+          {/* Monitor illustration */}
+          <svg viewBox="0 0 280 220" className="w-full max-w-[280px] mx-auto mb-10">
+            {/* Monitor body */}
+            <rect x="30" y="20" width="220" height="140" rx="10" fill="none" stroke="hsl(210 15% 40%)" strokeWidth="3" />
+            {/* Screen */}
+            <rect x="40" y="30" width="200" height="120" rx="6" fill="hsl(210 35% 12%)" />
+            {/* Stand */}
+            <rect x="120" y="160" width="40" height="20" fill="none" stroke="hsl(210 15% 40%)" strokeWidth="3" />
+            <rect x="100" y="180" width="80" height="6" rx="3" fill="none" stroke="hsl(210 15% 40%)" strokeWidth="3" />
+            
+            {/* Person silhouette - head */}
+            <circle cx="140" cy="80" r="24" fill="hsl(174 70% 50%)" />
+            {/* Person silhouette - shoulders */}
+            <path d="M 108 130 Q 108 108 140 108 Q 172 108 172 130" fill="none" stroke="hsl(174 70% 50%)" strokeWidth="4" strokeLinecap="round" />
+            
+            {/* Webcam dots */}
+            <circle cx="62" cy="52" r="6" fill="hsl(210 80% 55%)" />
+            <circle cx="218" cy="52" r="6" fill="hsl(350 60% 55%)" opacity="0.7" />
           </svg>
 
-          <h2 className="text-2xl font-bold text-primary-foreground mb-3">
+          <h2 className="text-2xl font-bold text-white mb-3">
             Sua clínica remota, simplificada.
           </h2>
-          <p className="text-primary-foreground/70 text-sm leading-relaxed">
+          <p className="text-white/50 text-sm leading-relaxed">
             Foque no que realmente importa: o bem-estar dos seus pacientes. Nós cuidamos do resto.
           </p>
         </div>

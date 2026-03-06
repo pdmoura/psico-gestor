@@ -2,31 +2,60 @@ import { Users, CheckCircle, TrendingUp, AlertTriangle, ChevronRight } from "luc
 import { StatusBadge } from "./StatusBadge";
 
 export const DashboardView = () => {
+  // Sessions data (source of truth)
+  const allSessions = [
+    { time: "09:00", name: "Fernanda Lima", status: "Realizado", val: 200, payment: "Pago" },
+    { time: "10:00", name: "Pedro Henrique", status: "Realizado", val: 250, payment: "Pago" },
+    { time: "11:00", name: "Juliana Martins", status: "Realizado", val: 200, payment: "Pago" },
+    { time: "13:00", name: "Rafael Almeida", status: "Realizado", val: 180, payment: "Pendente" },
+    { time: "14:00", name: "Carlos Andrade", status: "Agendado", val: 200, payment: "Pendente" },
+    { time: "15:30", name: "Luiza Ferreira", status: "Agendado", val: 250, payment: "Pendente" },
+    { time: "16:00", name: "Marília Santos", status: "Agendado", val: 180, payment: "Pendente" },
+    { time: "17:00", name: "Roberto Mendes", status: "Cancelado", val: 200, payment: "Cancelado" },
+  ];
+
+  const todaySessions = allSessions.filter(s => s.status !== "Realizado");
+
+  // Computed KPIs
+  const totalSessionsMonth = 38;
+  const paidSessions = 22;
+  const pendingSessions = 9;
+  const cancelledSessions = 7;
+  const totalRevenue = 13_600;
+  const pendingRevenue = paidSessions > 0 ? pendingSessions * 200 : 0; // ~R$ 1.800
+
   const kpis = [
     { label: "Pacientes ativos", value: "47", icon: Users, trend: "+3 este mês", trendUp: true, delay: "stagger-1" },
-    { label: "Sessões este mês", value: "32", icon: CheckCircle, trend: "Dentro da média", trendUp: true, delay: "stagger-2" },
-    { label: "Faturamento", value: "R$ 12.800", icon: TrendingUp, trend: "+12% vs mês ant.", trendUp: true, delay: "stagger-3" },
-    { label: "Pendentes", value: "R$ 2.400", icon: AlertTriangle, badge: "4 sessões", isAlert: true, delay: "stagger-4" },
+    { label: "Sessões este mês", value: String(totalSessionsMonth), icon: CheckCircle, trend: "Dentro da média", trendUp: true, delay: "stagger-2" },
+    { label: "Faturamento", value: `R$ ${(totalRevenue).toLocaleString("pt-BR")}`, icon: TrendingUp, trend: "+12% vs mês ant.", trendUp: true, delay: "stagger-3" },
+    { label: "Pendentes", value: `R$ ${pendingRevenue.toLocaleString("pt-BR")}`, icon: AlertTriangle, badge: `${pendingSessions} sessões`, isAlert: true, delay: "stagger-4" },
   ];
 
+  // Bar chart data aligned with revenue numbers
   const barData = [
-    { month: "Jan", val: 60, lbl: "9k" },
-    { month: "Fev", val: 75, lbl: "11.2k" },
-    { month: "Mar", val: 65, lbl: "9.8k" },
-    { month: "Abr", val: 85, lbl: "12.8k" },
-    { month: "Mai", val: 90, lbl: "13.5k" },
-    { month: "Jun", val: 80, lbl: "12k" },
+    { month: "Jan", val: 9000 },
+    { month: "Fev", val: 11200 },
+    { month: "Mar", val: 9800 },
+    { month: "Abr", val: 10500 },
+    { month: "Mai", val: 12100 },
+    { month: "Jun", val: 11800 },
+    { month: "Jul", val: 13200 },
+    { month: "Ago", val: 13600 },
   ];
+  const maxBar = 15000;
 
-  const sessions = [
-    { time: "14:00", name: "Carlos Andrade", status: "Agendado" },
-    { time: "15:30", name: "Luiza Ferreira", status: "Agendado" },
-    { time: "17:00", name: "Roberto Mendes", status: "Cancelado" },
-  ];
+  // Donut chart values
+  const paidPct = Math.round((paidSessions / totalSessionsMonth) * 100);
+  const pendingPct = Math.round((pendingSessions / totalSessionsMonth) * 100);
+  const cancelledPct = 100 - paidPct - pendingPct;
+
+  // SVG donut math
+  const paidDash = paidPct;
+  const pendingDash = pendingPct;
+  const cancelledDash = cancelledPct;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Welcome */}
       <div>
         <h2 className="text-2xl font-bold text-foreground">Bom dia, Dra. Mariana 👋</h2>
         <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo da sua semana</p>
@@ -68,16 +97,20 @@ export const DashboardView = () => {
               <span>15k</span><span>10k</span><span>5k</span><span>0</span>
             </div>
             <div className="flex-1 flex items-end gap-2 sm:gap-3 h-full">
-              {barData.map((d, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] font-medium text-muted-foreground">{d.lbl}</span>
-                  <div
-                    className="w-full bg-primary/80 rounded-t-md transition-all duration-500 hover:bg-primary min-w-[20px]"
-                    style={{ height: `${d.val}%` }}
-                  />
-                  <span className="text-[10px] text-muted-foreground">{d.month}</span>
-                </div>
-              ))}
+              {barData.map((d, i) => {
+                const heightPct = (d.val / maxBar) * 100;
+                const label = d.val >= 1000 ? `${(d.val / 1000).toFixed(1).replace(".0", "")}k` : String(d.val);
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+                    <div
+                      className="w-full bg-primary/80 rounded-t-md transition-all duration-500 hover:bg-primary min-w-[20px]"
+                      style={{ height: `${heightPct}%` }}
+                    />
+                    <span className="text-[10px] text-muted-foreground">{d.month}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -88,20 +121,20 @@ export const DashboardView = () => {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="relative w-40 h-40 flex-shrink-0">
               <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-neutral-border))" strokeWidth="3.5" strokeDasharray="20, 80" strokeDashoffset="0" />
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-error-border))" strokeWidth="3.5" strokeDasharray="20, 80" strokeDashoffset="-20" />
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-success-border))" strokeWidth="3.5" strokeDasharray="60, 40" strokeDashoffset="-40" />
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-neutral-border))" strokeWidth="3.5" strokeDasharray={`${cancelledDash}, ${100 - cancelledDash}`} strokeDashoffset="0" />
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-error-border))" strokeWidth="3.5" strokeDasharray={`${pendingDash}, ${100 - pendingDash}`} strokeDashoffset={`-${cancelledDash}`} />
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-success-border))" strokeWidth="3.5" strokeDasharray={`${paidDash}, ${100 - paidDash}`} strokeDashoffset={`-${cancelledDash + pendingDash}`} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold text-foreground">32</span>
+                <span className="text-3xl font-bold text-foreground">{totalSessionsMonth}</span>
                 <span className="text-xs text-muted-foreground">Total</span>
               </div>
             </div>
             <div className="space-y-3 w-full">
               {[
-                { label: "Pagas", pct: "60% (19)", color: "bg-[hsl(var(--status-success-border))]" },
-                { label: "Pendentes", pct: "20% (6)", color: "bg-[hsl(var(--status-error-border))]" },
-                { label: "Canceladas", pct: "20% (7)", color: "bg-[hsl(var(--status-neutral-border))]" },
+                { label: "Pagas", pct: `${paidPct}% (${paidSessions})`, color: "bg-[hsl(var(--status-success-border))]" },
+                { label: "Pendentes", pct: `${pendingPct}% (${pendingSessions})`, color: "bg-[hsl(var(--status-error-border))]" },
+                { label: "Canceladas", pct: `${cancelledPct}% (${cancelledSessions})`, color: "bg-[hsl(var(--status-neutral-border))]" },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -137,7 +170,7 @@ export const DashboardView = () => {
               </tr>
             </thead>
             <tbody>
-              {sessions.map((row, i) => (
+              {todaySessions.map((row, i) => (
                 <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3 font-medium text-foreground">{row.time}</td>
                   <td className="px-5 py-3 text-foreground">{row.name}</td>
@@ -155,7 +188,7 @@ export const DashboardView = () => {
 
         {/* Mobile */}
         <div className="sm:hidden divide-y divide-border">
-          {sessions.map((row, i) => (
+          {todaySessions.map((row, i) => (
             <div key={i} className="p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground">{row.name}</span>
