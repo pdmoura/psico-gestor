@@ -293,20 +293,20 @@ export const SessionsView = () => {
       </div>
 
       {/* Reserved bulk actions bar */}
-      <div className="h-10 flex items-center gap-2">
+      <div className="min-h-[40px] flex flex-wrap items-center gap-2">
         {hasBulk ? (
           <>
             <Checkbox
               checked={selectedIds.size === sessions.length}
               onCheckedChange={toggleSelectAll}
             />
-            <span className="text-sm text-muted-foreground mr-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
               {selectedIds.size} selecionada(s)
             </span>
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
+              className="gap-1.5 text-xs sm:text-sm text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
               onClick={() => setShowBulkDeleteConfirm(true)}
             >
               <Trash2 size={14} /> Excluir ({selectedIds.size})

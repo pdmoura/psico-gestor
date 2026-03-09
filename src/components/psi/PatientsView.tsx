@@ -172,33 +172,36 @@ export const PatientsView = () => {
         </div>
       </div>
 
-      {/* Reserved bulk actions bar — fixed height to prevent layout shift */}
-      <div className="h-10 flex items-center gap-2">
+      {/* Reserved bulk actions bar */}
+      <div className="min-h-[40px] flex flex-wrap items-center gap-2">
         {hasBulk ? (
           <>
             <Checkbox
               checked={selectedIds.size === filtered.length}
               onCheckedChange={toggleSelectAll}
             />
-            <span className="text-sm text-muted-foreground mr-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
               {selectedIds.size} selecionado(s)
             </span>
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5"
-              onClick={() => setShowBulkToggleConfirm(true)}
+              className="gap-1.5 text-xs sm:text-sm"
+              onClick={handleBulkToggle}
             >
               {allSelectedActive ? <ToggleLeft size={14} /> : <ToggleRight size={14} />}
-              {bulkToggleLabel} ({selectedIds.size})
+              <span className="hidden sm:inline">{bulkToggleLabel} ({selectedIds.size})</span>
+              <span className="sm:hidden">{bulkToggleLabel}</span>
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
+              className="gap-1.5 text-xs sm:text-sm text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
               onClick={() => setShowBulkDeleteConfirm(true)}
             >
-              <Trash2 size={14} /> Excluir ({selectedIds.size})
+              <Trash2 size={14} />
+              <span className="hidden sm:inline">Excluir ({selectedIds.size})</span>
+              <span className="sm:hidden">Excluir</span>
             </Button>
           </>
         ) : (
