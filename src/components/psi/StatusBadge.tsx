@@ -14,7 +14,7 @@ const statusStyles: Record<string, string> = {
   agendado: "bg-[hsl(var(--status-info-bg))] text-[hsl(var(--status-info-text))] border-[hsl(var(--status-info-border))]",
   cancelado: "bg-[hsl(var(--status-neutral-bg))] text-[hsl(var(--status-neutral-text))] border-[hsl(var(--status-neutral-border))]",
   ativo: "bg-[hsl(var(--status-success-bg))] text-[hsl(var(--status-success-text))] border-[hsl(var(--status-success-border))]",
-  inativo: "bg-[hsl(var(--status-neutral-bg))] text-[hsl(var(--status-neutral-text))] border-[hsl(var(--status-neutral-border))]",
+  inativo: "bg-[hsl(var(--status-inactive-bg))] text-[hsl(var(--status-inactive-text))] border-[hsl(var(--status-inactive-border))]",
 };
 
 export const StatusBadge = ({ status, children }: StatusBadgeProps) => {
