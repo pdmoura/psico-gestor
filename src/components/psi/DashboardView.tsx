@@ -229,7 +229,7 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
                     <span className="font-medium text-foreground">{row.name}</span>
                     <StatusBadge status={row.status} />
                   </div>
-                  <p className="text-sm text-muted-foreground">🕒 {row.time}</p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock size={14} /> {row.time}</p>
                 </button>
               ))}
             </div>
