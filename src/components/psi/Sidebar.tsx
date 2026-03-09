@@ -16,7 +16,6 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: "sessions", label: "Sessões", icon: Calendar },
   { id: "finance", label: "Financeiro", icon: TrendingUp },
   { id: "settings", label: "Configurações", icon: Settings },
-  { id: "specs", label: "Design Specs", icon: Palette },
 ];
 
 export const Sidebar = ({ isOpen, currentView, onViewChange, onLogout, onCloseMobile }: SidebarProps) => {
