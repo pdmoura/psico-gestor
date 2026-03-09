@@ -347,8 +347,9 @@ export const SessionsView = () => {
                   <div key={di}
                     className={`border-r border-border last:border-r-0 relative p-1 cursor-pointer hover:bg-muted/30 transition-colors ${isSameDay(day, today) ? "bg-primary/[0.02]" : ""}`}
                     onClick={() => {
-                      if (cellSessions.length >= 2) setDayDetailDate(day);
-                      else openNewSession(day, hour);
+                      if (cellSessions.length === 0) openNewSession(day, hour);
+                      else if (cellSessions.length === 1) { setSelectedSession(cellSessions[0]); setIsModalOpen(true); }
+                      else setDayDetailDate(day);
                     }}>
                     {cellSessions.length === 0 ? null : cellSessions.length === 1 ? (
                       (() => {
