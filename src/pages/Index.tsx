@@ -7,6 +7,7 @@ import { PatientsView } from "@/components/psi/PatientsView";
 import { SessionsView } from "@/components/psi/SessionsView";
 import { FinanceView } from "@/components/psi/FinanceView";
 import { SettingsView } from "@/components/psi/SettingsView";
+import { useAuth } from "@/hooks/useAuth";
 
 const viewTitles: Record<ViewType, string> = {
   dashboard: "Dashboard",
@@ -17,7 +18,7 @@ const viewTitles: Record<ViewType, string> = {
 };
 
 const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, loading, signOut } = useAuth();
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -26,8 +27,16 @@ const Index = () => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
-  if (!isAuthenticated) {
-    return <AuthView onLogin={() => setIsAuthenticated(true)} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthView />;
   }
 
   const renderView = () => {
@@ -47,10 +56,9 @@ const Index = () => {
         isOpen={sidebarOpen}
         currentView={currentView}
         onViewChange={setCurrentView}
-        onLogout={() => setIsAuthenticated(false)}
+        onLogout={signOut}
         onCloseMobile={() => setSidebarOpen(false)}
       />
-
       <div className="lg:ml-[260px] min-h-screen flex flex-col">
         <Topbar
           title={viewTitles[currentView]}
@@ -58,7 +66,6 @@ const Index = () => {
           isDark={isDark}
           toggleTheme={() => setIsDark(!isDark)}
         />
-
         <main className="flex-1 p-4 sm:p-6">
           {renderView()}
         </main>

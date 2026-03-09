@@ -1,30 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Edit2, Archive, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import { Modal } from "./Modal";
 import { FormInput } from "./FormInput";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import type { Tables } from "@/integrations/supabase/types";
 
-interface Patient {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  val: string;
-  time: string;
-  status: string;
-}
+type Patient = Tables<"patients">;
 
 export const PatientsView = () => {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const patients: Patient[] = [
-    { id: 1, name: "Alice Guimarães", phone: "(11) 98765-4321", email: "alice@email.com", val: "R$ 200", time: "Ter, 14h", status: "Ativo" },
-    { id: 2, name: "Bruno Costa", phone: "(11) 91234-5678", email: "bruno@email.com", val: "R$ 180", time: "Qua, 10h", status: "Ativo" },
-    { id: 3, name: "Carla Dias", phone: "(21) 99999-8888", email: "carla@email.com", val: "R$ 250", time: "Qui, 18h", status: "Inativo" },
-  ];
+  const fetchPatients = async () => {
+    const { data, error } = await supabase.from("patients").select("*").order("name");
+    if (error) { toast.error("Erro ao carregar pacientes"); return; }
+    setPatients(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchPatients(); }, []);
 
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -33,38 +36,63 @@ export const PatientsView = () => {
     setIsModalOpen(true);
   };
 
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user) return;
+    setSaving(true);
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      name: fd.get("name") as string,
+      phone: fd.get("phone") as string,
+      email: fd.get("email") as string,
+      session_value: parseInt(fd.get("session_value") as string) || 200,
+      fixed_schedule: fd.get("fixed_schedule") as string,
+      status: fd.get("status") as string,
+      notes: fd.get("notes") as string,
+      user_id: user.id,
+    };
+
+    if (selectedPatient) {
+      const { error } = await supabase.from("patients").update(payload).eq("id", selectedPatient.id);
+      if (error) { toast.error("Erro ao atualizar"); setSaving(false); return; }
+      toast.success("Paciente atualizado!");
+    } else {
+      const { error } = await supabase.from("patients").insert(payload);
+      if (error) { toast.error("Erro ao criar paciente"); setSaving(false); return; }
+      toast.success("Paciente cadastrado!");
+    }
+    setSaving(false);
+    setIsModalOpen(false);
+    fetchPatients();
+  };
+
+  const handleArchive = async (patient: Patient) => {
+    const newStatus = patient.status === "Ativo" ? "Inativo" : "Ativo";
+    const { error } = await supabase.from("patients").update({ status: newStatus }).eq("id", patient.id);
+    if (error) { toast.error("Erro ao arquivar"); return; }
+    toast.success(newStatus === "Inativo" ? "Paciente arquivado" : "Paciente reativado");
+    fetchPatients();
+  };
+
+  if (loading) return <div className="flex items-center justify-center py-16 text-muted-foreground">Carregando...</div>;
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-foreground">Pacientes</h2>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar paciente..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-3 py-2 h-10 text-sm w-full sm:w-60 bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none transition-colors"
-            />
+            <input type="text" placeholder="Buscar paciente..." value={search} onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-3 py-2 h-10 text-sm w-full sm:w-60 bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none transition-colors" />
           </div>
-          <select className="h-10 px-3 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none">
-            <option>Todos os status</option>
-            <option>Ativos</option>
-            <option>Inativos</option>
-          </select>
-          <Button onClick={() => openEditModal(null)} className="h-10 gap-2">
-            <Plus size={16} /> Novo Paciente
-          </Button>
+          <Button onClick={() => openEditModal(null)} className="h-10 gap-2"><Plus size={16} /> Novo Paciente</Button>
         </div>
       </div>
 
-      {/* Content */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         {filtered.length > 0 ? (
           <>
-            {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -85,17 +113,13 @@ export const PatientsView = () => {
                         <div className="text-foreground">{p.phone}</div>
                         <div className="text-xs text-muted-foreground">{p.email}</div>
                       </td>
-                      <td className="px-5 py-3 text-foreground">{p.val}</td>
-                      <td className="px-5 py-3 text-foreground">{p.time}</td>
+                      <td className="px-5 py-3 text-foreground">R$ {p.session_value}</td>
+                      <td className="px-5 py-3 text-foreground">{p.fixed_schedule || "—"}</td>
                       <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openEditModal(p)} className="p-2 text-link hover:bg-muted rounded-md transition-colors" aria-label="Editar">
-                            <Edit2 size={16} />
-                          </button>
-                          <button className="p-2 text-muted-foreground hover:bg-muted rounded-md transition-colors" aria-label="Arquivar">
-                            <Archive size={16} />
-                          </button>
+                          <button onClick={() => openEditModal(p)} className="p-2 text-[hsl(var(--text-link))] hover:bg-muted rounded-md transition-colors" aria-label="Editar"><Edit2 size={16} /></button>
+                          <button onClick={() => handleArchive(p)} className="p-2 text-muted-foreground hover:bg-muted rounded-md transition-colors" aria-label="Arquivar"><Archive size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -104,7 +128,6 @@ export const PatientsView = () => {
               </table>
             </div>
 
-            {/* Mobile Cards */}
             <div className="md:hidden divide-y divide-border">
               {filtered.map((p) => (
                 <div key={p.id} className="p-4 space-y-3">
@@ -114,12 +137,12 @@ export const PatientsView = () => {
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
                     <p>📞 {p.phone}</p>
-                    <p>💰 {p.val}</p>
-                    <p>🕒 {p.time}</p>
+                    <p>💰 R$ {p.session_value}</p>
+                    <p>🕒 {p.fixed_schedule || "—"}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => openEditModal(p)}>Editar</Button>
-                    <Button variant="ghost" size="sm" onClick={() => openEditModal(p)}>Perfil</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleArchive(p)}>{p.status === "Ativo" ? "Arquivar" : "Reativar"}</Button>
                   </div>
                 </div>
               ))}
@@ -127,42 +150,27 @@ export const PatientsView = () => {
           </>
         ) : (
           <div className="py-16 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-              <Users size={28} className="text-muted-foreground" />
-            </div>
+            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center"><Users size={28} className="text-muted-foreground" /></div>
             <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum paciente encontrado</h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-              Comece adicionando seu primeiro paciente para gerenciar sessões e pagamentos.
-            </p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">Comece adicionando seu primeiro paciente para gerenciar sessões e pagamentos.</p>
             <Button onClick={() => openEditModal(null)}>Cadastrar paciente</Button>
-          </div>
-        )}
-
-        {filtered.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between px-5 py-3 border-t border-border bg-muted/30 gap-2">
-            <span className="text-xs text-muted-foreground">Mostrando 1-{filtered.length} de {patients.length}</span>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled>Ant</Button>
-              <Button variant="outline" size="sm" disabled>Próx</Button>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedPatient ? "Editar Paciente" : "Novo Paciente"} maxWidth="max-w-2xl">
-        <div className="space-y-4">
-          <FormInput label="Nome completo" id="pat-name" defaultValue={selectedPatient?.name || ""} required />
+        <form onSubmit={handleSave} className="space-y-4">
+          <FormInput label="Nome completo" id="pat-name" name="name" defaultValue={selectedPatient?.name || ""} required />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormInput label="Telefone" id="pat-phone" defaultValue={selectedPatient?.phone || ""} required />
-            <FormInput label="Email" id="pat-email" type="email" defaultValue={selectedPatient?.email || ""} required />
+            <FormInput label="Telefone" id="pat-phone" name="phone" defaultValue={selectedPatient?.phone || ""} />
+            <FormInput label="Email" id="pat-email" name="email" type="email" defaultValue={selectedPatient?.email || ""} />
           </div>
-          <FormInput label="Valor da sessão" id="pat-val" defaultValue={selectedPatient?.val || ""} required />
+          <FormInput label="Valor da sessão" id="pat-val" name="session_value" type="number" defaultValue={String(selectedPatient?.session_value || 200)} required />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormInput label="Horário fixo" id="pat-time" defaultValue={selectedPatient?.time || ""} />
+            <FormInput label="Horário fixo" id="pat-time" name="fixed_schedule" defaultValue={selectedPatient?.fixed_schedule || ""} />
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Status</label>
-              <select className="h-11 px-3 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none" defaultValue={selectedPatient?.status || "Ativo"}>
+              <select name="status" className="h-11 px-3 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none" defaultValue={selectedPatient?.status || "Ativo"}>
                 <option>Ativo</option>
                 <option>Inativo</option>
               </select>
@@ -170,13 +178,13 @@ export const PatientsView = () => {
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Anotações do Paciente</label>
-            <textarea className="h-24 px-3 py-2 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none resize-none" placeholder="Observações gerais..." />
+            <textarea name="notes" className="h-24 px-3 py-2 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none resize-none" placeholder="Observações gerais..." defaultValue={selectedPatient?.notes || ""} />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button onClick={() => setIsModalOpen(false)}>Salvar Informações</Button>
+            <Button variant="outline" type="button" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar Informações"}</Button>
           </div>
-        </div>
+        </form>
       </Modal>
     </div>
   );
