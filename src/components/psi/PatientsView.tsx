@@ -131,7 +131,7 @@ export const PatientsView = () => {
     if (error) { toast.error("Erro ao alterar status"); return; }
     toast.success(`${ids.length} paciente(s) ${bulkToggleNewStatus === "Inativo" ? "desativado(s)" : "ativado(s)"}`);
     setSelectedIds(new Set());
-    setShowBulkToggleConfirm(false);
+    
     fetchPatients();
   };
 
