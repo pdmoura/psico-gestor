@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Trash2, CalendarClock, X } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Trash2, CalendarClock, Search } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
+import {
+  Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
+} from "@/components/ui/command";
 
 interface SessionRow {
   id: string;
@@ -58,7 +61,10 @@ export const SessionsView = () => {
   const [autoValue, setAutoValue] = useState("200");
   const [autoTime, setAutoTime] = useState("");
 
-  // Bulk select (always visible checkboxes)
+  // Patient search popover
+  const [patientSearchOpen, setPatientSearchOpen] = useState(false);
+
+  // Bulk select
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
@@ -118,6 +124,11 @@ export const SessionsView = () => {
     }
   }, [patients, newHourDefault]);
 
+  const selectedPatientName = useMemo(() => {
+    const pat = patients.find(p => p.id === selectedPatientId);
+    return pat?.name || "";
+  }, [patients, selectedPatientId]);
+
   const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
   const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
@@ -144,10 +155,12 @@ export const SessionsView = () => {
 
   const handleCreateSession = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user || !newDate) return;
+    if (!user || !newDate || !selectedPatientId) {
+      if (!selectedPatientId) toast.error("Selecione um paciente");
+      return;
+    }
     setSaving(true);
     const fd = new FormData(e.currentTarget);
-    const patient_id = fd.get("patient_id") as string;
     const time = fd.get("time") as string;
     const type = fd.get("type") as string;
     const value = parseInt(fd.get("val") as string) || 200;
@@ -155,13 +168,13 @@ export const SessionsView = () => {
     const endHour = `${String(hourNum + 1).padStart(2, "0")}:${time.split(":")[1] || "00"}`;
 
     const { error } = await supabase.from("sessions").insert({
-      user_id: user.id, patient_id, date: format(newDate, "yyyy-MM-dd"),
+      user_id: user.id, patient_id: selectedPatientId, date: format(newDate, "yyyy-MM-dd"),
       start_time: time, end_time: endHour, type, value,
     });
 
     if (!error) {
       await supabase.from("transactions").insert({
-        user_id: user.id, patient_id, date: format(newDate, "yyyy-MM-dd"), value,
+        user_id: user.id, patient_id: selectedPatientId, date: format(newDate, "yyyy-MM-dd"), value,
       });
     }
 
@@ -193,12 +206,8 @@ export const SessionsView = () => {
     fetchData();
   };
 
-  // Delete session
   const handleDeleteSession = async (id: string) => {
-    const session = sessions.find(s => s.id === id);
-    if (session) {
-      await supabase.from("transactions").delete().eq("session_id", id);
-    }
+    await supabase.from("transactions").delete().eq("session_id", id);
     const { error } = await supabase.from("sessions").delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir sessão"); return; }
     toast.success("Sessão excluída!");
@@ -208,7 +217,6 @@ export const SessionsView = () => {
     fetchData();
   };
 
-  // Reschedule session
   const handleReschedule = async () => {
     if (!rescheduleSessionId || !rescheduleDate || !rescheduleTime) return;
     const hourNum = parseInt(rescheduleTime.split(":")[0]);
@@ -273,6 +281,7 @@ export const SessionsView = () => {
   };
 
   const dayDetailSessions = dayDetailDate ? getSessionsForDay(dayDetailDate) : [];
+  const hasBulk = selectedIds.size > 0;
 
   if (loading) return <div className="flex items-center justify-center py-16 text-muted-foreground">Carregando...</div>;
 
@@ -280,18 +289,32 @@ export const SessionsView = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-foreground">Agenda de Sessões</h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          {selectedIds.size > 0 && (
+        <Button className="gap-2" onClick={() => openNewSession()}><Plus size={16} /> Nova Sessão</Button>
+      </div>
+
+      {/* Reserved bulk actions bar */}
+      <div className="h-10 flex items-center gap-2">
+        {hasBulk ? (
+          <>
+            <Checkbox
+              checked={selectedIds.size === sessions.length}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span className="text-sm text-muted-foreground mr-2">
+              {selectedIds.size} selecionada(s)
+            </span>
             <Button
               size="sm"
-              className="gap-1.5 bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
+              variant="outline"
+              className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
               onClick={() => setShowBulkDeleteConfirm(true)}
             >
               <Trash2 size={14} /> Excluir ({selectedIds.size})
             </Button>
-          )}
-          <Button className="gap-2" onClick={() => openNewSession()}><Plus size={16} /> Nova Sessão</Button>
-        </div>
+          </>
+        ) : (
+          <span className="text-sm text-muted-foreground">Selecione sessões para ações em lote</span>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -368,15 +391,6 @@ export const SessionsView = () => {
 
       {/* Mobile List */}
       <div className="lg:hidden space-y-4">
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 px-1">
-            <Checkbox
-              checked={selectedIds.size === sessions.length}
-              onCheckedChange={toggleSelectAll}
-            />
-            <span className="text-sm text-muted-foreground">Selecionar todas</span>
-          </div>
-        )}
         {Object.keys(groupedSessions).length === 0 && (
           <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma sessão agendada.</div>
         )}
@@ -554,13 +568,47 @@ export const SessionsView = () => {
       {/* New Session Modal */}
       <Modal isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} title="Nova Sessão">
         <form onSubmit={handleCreateSession} className="space-y-4">
+          {/* Searchable patient selector */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Paciente</label>
-            <select name="patient_id" required value={selectedPatientId} onChange={(e) => handlePatientChange(e.target.value)}
-              className="h-11 px-3 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none">
-              <option value="">Selecionar paciente...</option>
-              {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={patientSearchOpen}
+                  className={cn("w-full justify-between font-normal", !selectedPatientId && "text-muted-foreground")}
+                >
+                  {selectedPatientName || "Buscar paciente..."}
+                  <Search size={14} className="ml-2 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar por nome..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {patients.map(p => (
+                        <CommandItem
+                          key={p.id}
+                          value={p.name}
+                          onSelect={() => {
+                            handlePatientChange(p.id);
+                            setPatientSearchOpen(false);
+                          }}
+                        >
+                          <span className={cn("flex-1", selectedPatientId === p.id && "font-semibold")}>{p.name}</span>
+                          {p.session_value && (
+                            <span className="text-xs text-muted-foreground">R$ {p.session_value}</span>
+                          )}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Data da sessão</label>

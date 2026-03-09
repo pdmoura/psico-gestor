@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Search, Edit2, Archive, Trash2, Plus, Users, Phone, DollarSign, Clock } from "lucide-react";
+import { Search, Edit2, Trash2, Plus, Users, Phone, DollarSign, Clock, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { StatusBadge } from "./StatusBadge";
 import { Modal } from "./Modal";
 import { FormInput } from "./FormInput";
@@ -25,12 +26,10 @@ export const PatientsView = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Bulk select (always visible)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showBulkArchiveConfirm, setShowBulkArchiveConfirm] = useState(false);
+  const [showBulkToggleConfirm, setShowBulkToggleConfirm] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  // Single delete
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePatientId, setDeletePatientId] = useState<string | null>(null);
 
@@ -80,16 +79,15 @@ export const PatientsView = () => {
     fetchPatients();
   };
 
-  const handleArchive = async (patient: Patient) => {
+  const handleToggleStatus = async (patient: Patient) => {
     const newStatus = patient.status === "Ativo" ? "Inativo" : "Ativo";
     const { error } = await supabase.from("patients").update({ status: newStatus }).eq("id", patient.id);
-    if (error) { toast.error("Erro ao arquivar"); return; }
-    toast.success(newStatus === "Inativo" ? "Paciente arquivado" : "Paciente reativado");
+    if (error) { toast.error("Erro ao alterar status"); return; }
+    toast.success(newStatus === "Inativo" ? "Paciente desativado" : "Paciente ativado");
     fetchPatients();
   };
 
   const handleDeletePatient = async (id: string) => {
-    // Delete related sessions and transactions first
     const { data: patientSessions } = await supabase.from("sessions").select("id").eq("patient_id", id);
     if (patientSessions && patientSessions.length > 0) {
       const sessionIds = patientSessions.map(s => s.id);
@@ -105,7 +103,6 @@ export const PatientsView = () => {
     fetchPatients();
   };
 
-  // Bulk
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -122,13 +119,19 @@ export const PatientsView = () => {
     }
   };
 
-  const handleBulkArchive = async () => {
+  // Check if all selected are active or inactive for bulk toggle
+  const selectedPatients = filtered.filter(p => selectedIds.has(p.id));
+  const allSelectedActive = selectedPatients.every(p => p.status === "Ativo");
+  const bulkToggleLabel = allSelectedActive ? "Desativar" : "Ativar";
+  const bulkToggleNewStatus = allSelectedActive ? "Inativo" : "Ativo";
+
+  const handleBulkToggle = async () => {
     const ids = Array.from(selectedIds);
-    const { error } = await supabase.from("patients").update({ status: "Inativo" }).in("id", ids);
-    if (error) { toast.error("Erro ao arquivar pacientes"); return; }
-    toast.success(`${ids.length} paciente(s) arquivado(s)`);
+    const { error } = await supabase.from("patients").update({ status: bulkToggleNewStatus }).in("id", ids);
+    if (error) { toast.error("Erro ao alterar status"); return; }
+    toast.success(`${ids.length} paciente(s) ${bulkToggleNewStatus === "Inativo" ? "desativado(s)" : "ativado(s)"}`);
     setSelectedIds(new Set());
-    setShowBulkArchiveConfirm(false);
+    setShowBulkToggleConfirm(false);
     fetchPatients();
   };
 
@@ -153,6 +156,8 @@ export const PatientsView = () => {
 
   if (loading) return <div className="flex items-center justify-center py-16 text-muted-foreground">Carregando...</div>;
 
+  const hasBulk = selectedIds.size > 0;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -163,29 +168,42 @@ export const PatientsView = () => {
             <input type="text" placeholder="Buscar paciente..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-3 py-2 h-10 text-sm w-full sm:w-60 bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none transition-colors" />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {selectedIds.size > 0 && (
-              <>
-                <Button
-                  size="sm"
-                  className="gap-1.5 bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
-                  onClick={() => setShowBulkArchiveConfirm(true)}
-                >
-                  <Archive size={14} /> Arquivar ({selectedIds.size})
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
-                  onClick={() => setShowBulkDeleteConfirm(true)}
-                >
-                  <Trash2 size={14} /> Excluir ({selectedIds.size})
-                </Button>
-              </>
-            )}
-            <Button onClick={() => openEditModal(null)} className="h-10 gap-2"><Plus size={16} /> Novo Paciente</Button>
-          </div>
+          <Button onClick={() => openEditModal(null)} className="h-10 gap-2"><Plus size={16} /> Novo Paciente</Button>
         </div>
+      </div>
+
+      {/* Reserved bulk actions bar — fixed height to prevent layout shift */}
+      <div className="h-10 flex items-center gap-2">
+        {hasBulk ? (
+          <>
+            <Checkbox
+              checked={selectedIds.size === filtered.length}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span className="text-sm text-muted-foreground mr-2">
+              {selectedIds.size} selecionado(s)
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => setShowBulkToggleConfirm(true)}
+            >
+              {allSelectedActive ? <ToggleLeft size={14} /> : <ToggleRight size={14} />}
+              {bulkToggleLabel} ({selectedIds.size})
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
+              onClick={() => setShowBulkDeleteConfirm(true)}
+            >
+              <Trash2 size={14} /> Excluir ({selectedIds.size})
+            </Button>
+          </>
+        ) : (
+          <span className="text-sm text-muted-foreground">Selecione pacientes para ações em lote</span>
+        )}
       </div>
 
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
@@ -196,12 +214,10 @@ export const PatientsView = () => {
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
                     <th className="w-10 px-3 py-3">
-                      {selectedIds.size > 0 && (
-                        <Checkbox
-                          checked={selectedIds.size === filtered.length}
-                          onCheckedChange={toggleSelectAll}
-                        />
-                      )}
+                      <Checkbox
+                        checked={hasBulk && selectedIds.size === filtered.length}
+                        onCheckedChange={toggleSelectAll}
+                      />
                     </th>
                     <th className="text-left px-5 py-3 font-medium text-muted-foreground">Nome</th>
                     <th className="text-left px-5 py-3 font-medium text-muted-foreground">Contato</th>
@@ -234,13 +250,11 @@ export const PatientsView = () => {
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-1">
                           <button onClick={() => openEditModal(p)} className="p-2 text-[hsl(var(--text-link))] hover:bg-muted rounded-md transition-colors" aria-label="Editar"><Edit2 size={16} /></button>
-                          <button
-                            onClick={() => handleArchive(p)}
-                            className="p-2 text-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10 rounded-md transition-colors"
-                            aria-label="Arquivar"
-                          >
-                            <Archive size={16} />
-                          </button>
+                          <Switch
+                            checked={p.status === "Ativo"}
+                            onCheckedChange={() => handleToggleStatus(p)}
+                            aria-label={p.status === "Ativo" ? "Desativar paciente" : "Ativar paciente"}
+                          />
                           <button
                             onClick={() => { setDeletePatientId(p.id); setShowDeleteConfirm(true); }}
                             className="p-2 text-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10 rounded-md transition-colors"
@@ -257,15 +271,6 @@ export const PatientsView = () => {
             </div>
 
             <div className="md:hidden divide-y divide-border">
-              {selectedIds.size > 0 && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-muted/30">
-                  <Checkbox
-                    checked={selectedIds.size === filtered.length}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                  <span className="text-sm text-muted-foreground">Selecionar todos</span>
-                </div>
-              )}
               {filtered.map((p) => (
                 <div key={p.id} className={cn("p-4 space-y-3", selectedIds.has(p.id) && "bg-primary/5")}>
                   <div className="flex items-center justify-between">
@@ -283,16 +288,16 @@ export const PatientsView = () => {
                     <p className="flex items-center gap-1.5"><DollarSign size={14} /> R$ {p.session_value}</p>
                     <p className="flex items-center gap-1.5"><Clock size={14} /> {p.fixed_schedule || "—"}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Button variant="outline" size="sm" onClick={() => openEditModal(p)}>Editar</Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleArchive(p)}
-                      className="text-[hsl(var(--archive-action))] hover:text-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
-                    >
-                      {p.status === "Ativo" ? "Arquivar" : "Reativar"}
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <Switch
+                        checked={p.status === "Ativo"}
+                        onCheckedChange={() => handleToggleStatus(p)}
+                        aria-label={p.status === "Ativo" ? "Desativar" : "Ativar"}
+                      />
+                      <span className="text-xs text-muted-foreground">{p.status === "Ativo" ? "Ativo" : "Inativo"}</span>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -366,22 +371,20 @@ export const PatientsView = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Archive Confirmation */}
-      <Dialog open={showBulkArchiveConfirm} onOpenChange={setShowBulkArchiveConfirm}>
+      {/* Bulk Toggle Confirmation */}
+      <Dialog open={showBulkToggleConfirm} onOpenChange={setShowBulkToggleConfirm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar arquivamento</DialogTitle>
+            <DialogTitle>Confirmar alteração de status</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja arquivar {selectedIds.size} paciente(s)? Eles serão marcados como inativos.
+              Tem certeza que deseja {bulkToggleLabel.toLowerCase()} {selectedIds.size} paciente(s)?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-            <Button
-              className="bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
-              onClick={handleBulkArchive}
-            >
-              <Archive size={14} className="mr-1.5" /> Arquivar pacientes
+            <Button onClick={handleBulkToggle}>
+              {allSelectedActive ? <ToggleLeft size={14} className="mr-1.5" /> : <ToggleRight size={14} className="mr-1.5" />}
+              {bulkToggleLabel} pacientes
             </Button>
           </DialogFooter>
         </DialogContent>
