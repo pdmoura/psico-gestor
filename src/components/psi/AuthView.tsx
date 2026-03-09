@@ -1,12 +1,13 @@
 import { useState, useRef, FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { FormInput } from "./FormInput";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-const RATE_LIMIT_MS = 3000; // 3 seconds between attempts
+const RATE_LIMIT_MS = 3000;
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_MS = 60_000; // 1 minute lockout
+const LOCKOUT_MS = 60_000;
 
 export const AuthView = () => {
   const { signIn, signUp, resetPassword } = useAuth();
@@ -14,8 +15,8 @@ export const AuthView = () => {
   const [isForgot, setIsForgot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailErr, setEmailErr] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Rate limiting state
   const attemptsRef = useRef(0);
   const lastAttemptRef = useRef(0);
   const lockoutUntilRef = useRef(0);
@@ -131,7 +132,25 @@ export const AuthView = () => {
             <FormInput label="Email" id="email" name="email" type="email" placeholder="seu@email.com" error={emailErr} required />
             {!isForgot && (
               <>
-                <FormInput label="Senha" id="password" name="password" type="password" placeholder="••••••••" required />
+                <div className="relative">
+                  <FormInput
+                    label="Senha"
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-[38px] text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {!isLogin && (
                   <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
                 )}
@@ -160,7 +179,7 @@ export const AuthView = () => {
               </div>
               <p className="text-center text-sm text-muted-foreground">
                 {isLogin ? "Ainda não tem uma conta? " : "Já tem uma conta? "}
-                <button onClick={() => { setIsLogin(!isLogin); setEmailErr(""); attemptsRef.current = 0; }} className="font-medium text-[hsl(var(--text-link))] hover:underline">
+                <button onClick={() => { setIsLogin(!isLogin); setEmailErr(""); attemptsRef.current = 0; setShowPassword(false); }} className="font-medium text-[hsl(var(--text-link))] hover:underline">
                   {isLogin ? "Criar conta gratuita" : "Entrar"}
                 </button>
               </p>
