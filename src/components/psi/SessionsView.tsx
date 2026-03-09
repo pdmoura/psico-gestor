@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -234,8 +234,8 @@ export const SessionsView = () => {
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="space-y-1">
-                      <p>🕒 {s.start_time} - {s.end_time}</p>
-                      <p>📍 {s.type}</p>
+                      <p className="flex items-center gap-1.5"><Clock size={14} /> {s.start_time} - {s.end_time}</p>
+                      <p className="flex items-center gap-1.5"><MapPin size={14} /> {s.type}</p>
                     </div>
                     <span className="text-foreground font-medium">R$ {s.value}</span>
                   </div>

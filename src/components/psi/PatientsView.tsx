@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Edit2, Archive, Plus, Users } from "lucide-react";
+import { Search, Edit2, Archive, Plus, Users, Phone, DollarSign, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import { Modal } from "./Modal";
@@ -135,10 +135,10 @@ export const PatientsView = () => {
                     <span className="font-medium text-foreground">{p.name}</span>
                     <StatusBadge status={p.status} />
                   </div>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p>📞 {p.phone}</p>
-                    <p>💰 R$ {p.session_value}</p>
-                    <p>🕒 {p.fixed_schedule || "—"}</p>
+                  <div className="text-sm text-muted-foreground space-y-1.5">
+                    <p className="flex items-center gap-1.5"><Phone size={14} /> {p.phone}</p>
+                    <p className="flex items-center gap-1.5"><DollarSign size={14} /> R$ {p.session_value}</p>
+                    <p className="flex items-center gap-1.5"><Clock size={14} /> {p.fixed_schedule || "—"}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => openEditModal(p)}>Editar</Button>
