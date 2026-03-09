@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Edit2, Archive, Plus, Users } from "lucide-react";
+import { Search, Edit2, Archive, Plus, Users, Phone, DollarSign, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import { Modal } from "./Modal";
