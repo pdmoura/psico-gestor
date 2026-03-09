@@ -7,7 +7,6 @@ import { PatientsView } from "@/components/psi/PatientsView";
 import { SessionsView } from "@/components/psi/SessionsView";
 import { FinanceView } from "@/components/psi/FinanceView";
 import { SettingsView } from "@/components/psi/SettingsView";
-import { DesignSpecsView } from "@/components/psi/DesignSpecsView";
 
 const viewTitles: Record<ViewType, string> = {
   dashboard: "Dashboard",
@@ -15,7 +14,6 @@ const viewTitles: Record<ViewType, string> = {
   sessions: "Sessões",
   finance: "Financeiro",
   settings: "Configurações",
-  specs: "Design Specs",
 };
 
 const Index = () => {
@@ -34,13 +32,12 @@ const Index = () => {
 
   const renderView = () => {
     switch (currentView) {
-      case "dashboard": return <DashboardView />;
+      case "dashboard": return <DashboardView onNavigate={setCurrentView} />;
       case "patients": return <PatientsView />;
       case "sessions": return <SessionsView />;
       case "finance": return <FinanceView />;
       case "settings": return <SettingsView />;
-      case "specs": return <DesignSpecsView />;
-      default: return <DashboardView />;
+      default: return <DashboardView onNavigate={setCurrentView} />;
     }
   };
 
