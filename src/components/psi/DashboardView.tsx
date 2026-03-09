@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Users, CheckCircle, TrendingUp, AlertTriangle, ChevronRight } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ViewType } from "./Sidebar";
 
@@ -11,6 +12,7 @@ interface DashboardViewProps {
 }
 
 export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
+  const { user } = useAuth();
   const [activePatients, setActivePatients] = useState(0);
   const [monthSessions, setMonthSessions] = useState({ total: 0, paid: 0, pending: 0, cancelled: 0 });
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -18,19 +20,30 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   const [barData, setBarData] = useState<{ month: string; val: number }[]>([]);
   const [todaySessions, setTodaySessions] = useState<{ time: string; name: string; status: string; id: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
+    if (!user) return;
+
+    // Get display name
+    const metaName = user.user_metadata?.full_name;
+    if (metaName) {
+      setDisplayName(metaName);
+    } else {
+      supabase.from("psychologist_settings").select("full_name").eq("user_id", user.id).single()
+        .then(({ data }) => setDisplayName(data?.full_name || user.email?.split("@")[0] || ""));
+    }
+
     const fetchDashboard = async () => {
       const now = new Date();
       const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
       const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
-      const todayStart = format(startOfDay(now), "yyyy-MM-dd");
+      const todayStr = format(startOfDay(now), "yyyy-MM-dd");
 
       const [patientsRes, sessionsRes, todayRes, transRes] = await Promise.all([
         supabase.from("patients").select("id", { count: "exact" }).eq("status", "Ativo"),
         supabase.from("sessions").select("status, payment_status, value").gte("date", monthStart).lte("date", monthEnd),
-        supabase.from("sessions").select("id, start_time, status, patients(name)").eq("date", todayStart).order("start_time"),
-        // Last 8 months revenue
+        supabase.from("sessions").select("id, start_time, status, patients(name)").eq("date", todayStr).order("start_time"),
         supabase.from("transactions").select("date, value, status").eq("status", "Pago"),
       ]);
 
@@ -47,7 +60,6 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       setTotalRevenue(rev);
       setPendingRevenue(pend);
 
-      // Today sessions
       setTodaySessions((todayRes.data || []).map((s: any) => ({
         id: s.id,
         time: s.start_time?.substring(0, 5) || "",
@@ -55,7 +67,6 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
         status: s.status,
       })));
 
-      // Bar chart — last 8 months
       const trans = transRes.data || [];
       const months: { month: string; val: number }[] = [];
       for (let i = 7; i >= 0; i--) {
@@ -69,7 +80,7 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       setLoading(false);
     };
     fetchDashboard();
-  }, []);
+  }, [user]);
 
   if (loading) return <div className="flex items-center justify-center py-16 text-muted-foreground">Carregando...</div>;
 
@@ -77,6 +88,13 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   const paidPct = monthSessions.total ? Math.round((monthSessions.paid / monthSessions.total) * 100) : 0;
   const pendingPct = monthSessions.total ? Math.round((monthSessions.pending / monthSessions.total) * 100) : 0;
   const cancelledPct = monthSessions.total ? 100 - paidPct - pendingPct : 0;
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Bom dia";
+    if (h < 18) return "Boa tarde";
+    return "Boa noite";
+  })();
 
   const kpis = [
     { label: "Pacientes ativos", value: String(activePatients), icon: Users, nav: "patients" as ViewType },
@@ -88,7 +106,7 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Bom dia 👋</h2>
+        <h2 className="text-2xl font-bold text-foreground">{greeting}, {displayName} 👋</h2>
         <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo da sua semana</p>
       </div>
 
@@ -109,7 +127,6 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold text-foreground">Faturamento mensal</h3>
@@ -138,7 +155,6 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
           </div>
         </div>
 
-        {/* Donut Chart */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold text-foreground">Sessões do mês</h3>
@@ -175,7 +191,6 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
         </div>
       </div>
 
-      {/* Today Sessions */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h3 className="text-base font-semibold text-foreground">Sessões de hoje</h3>
