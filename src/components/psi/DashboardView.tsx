@@ -1,8 +1,12 @@
 import { Users, CheckCircle, TrendingUp, AlertTriangle, ChevronRight } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
+import type { ViewType } from "./Sidebar";
 
-export const DashboardView = () => {
-  // Sessions data (source of truth)
+interface DashboardViewProps {
+  onNavigate: (view: ViewType) => void;
+}
+
+export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   const allSessions = [
     { time: "09:00", name: "Fernanda Lima", status: "Realizado", val: 200, payment: "Pago" },
     { time: "10:00", name: "Pedro Henrique", status: "Realizado", val: 250, payment: "Pago" },
@@ -16,13 +20,12 @@ export const DashboardView = () => {
 
   const todaySessions = allSessions.filter(s => s.status !== "Realizado");
 
-  // Computed KPIs
   const totalSessionsMonth = 38;
   const paidSessions = 22;
   const pendingSessions = 9;
   const cancelledSessions = 7;
   const totalRevenue = 13_600;
-  const pendingRevenue = paidSessions > 0 ? pendingSessions * 200 : 0; // ~R$ 1.800
+  const pendingRevenue = pendingSessions * 200;
 
   const kpis = [
     { label: "Pacientes ativos", value: "47", icon: Users, trend: "+3 este mês", trendUp: true, delay: "stagger-1" },
@@ -31,7 +34,6 @@ export const DashboardView = () => {
     { label: "Pendentes", value: `R$ ${pendingRevenue.toLocaleString("pt-BR")}`, icon: AlertTriangle, badge: `${pendingSessions} sessões`, isAlert: true, delay: "stagger-4" },
   ];
 
-  // Bar chart data aligned with revenue numbers
   const barData = [
     { month: "Jan", val: 9000 },
     { month: "Fev", val: 11200 },
@@ -42,17 +44,11 @@ export const DashboardView = () => {
     { month: "Jul", val: 13200 },
     { month: "Ago", val: 13600 },
   ];
-  const maxBar = 15000;
+  const maxBar = Math.max(...barData.map(d => d.val)) * 1.15;
 
-  // Donut chart values
   const paidPct = Math.round((paidSessions / totalSessionsMonth) * 100);
   const pendingPct = Math.round((pendingSessions / totalSessionsMonth) * 100);
   const cancelledPct = 100 - paidPct - pendingPct;
-
-  // SVG donut math
-  const paidDash = paidPct;
-  const pendingDash = pendingPct;
-  const cancelledDash = cancelledPct;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -64,9 +60,15 @@ export const DashboardView = () => {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((kpi, i) => (
-          <div
+          <button
             key={i}
-            className={`animate-fade-up ${kpi.delay} bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow`}
+            onClick={() => {
+              if (kpi.isAlert) onNavigate("finance");
+              else if (kpi.label.includes("Pacientes")) onNavigate("patients");
+              else if (kpi.label.includes("Sessões")) onNavigate("sessions");
+              else if (kpi.label.includes("Faturamento")) onNavigate("finance");
+            }}
+            className={`text-left animate-fade-up ${kpi.delay} bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow`}
           >
             <div className="flex items-start justify-between mb-3">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${kpi.isAlert ? "bg-[hsl(var(--status-warning-bg))] text-[hsl(var(--status-warning-text))]" : "bg-primary/10 text-primary"}`}>
@@ -83,7 +85,7 @@ export const DashboardView = () => {
                 {kpi.trendUp && "↑ "}{kpi.trend}
               </p>
             )}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -91,10 +93,18 @@ export const DashboardView = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bar Chart */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <h3 className="text-base font-semibold text-foreground mb-5">Faturamento mensal</h3>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-base font-semibold text-foreground">Faturamento mensal</h3>
+            <button onClick={() => onNavigate("finance")} className="text-sm text-[hsl(var(--text-link))] hover:underline flex items-center gap-1">
+              Detalhes <ChevronRight size={14} />
+            </button>
+          </div>
           <div className="flex gap-2 items-end h-48">
             <div className="flex flex-col justify-between text-[10px] text-muted-foreground h-full py-1 pr-2">
-              <span>15k</span><span>10k</span><span>5k</span><span>0</span>
+              <span>{Math.round(maxBar / 1000)}k</span>
+              <span>{Math.round(maxBar * 0.66 / 1000)}k</span>
+              <span>{Math.round(maxBar * 0.33 / 1000)}k</span>
+              <span>0</span>
             </div>
             <div className="flex-1 flex items-end gap-2 sm:gap-3 h-full">
               {barData.map((d, i) => {
@@ -117,13 +127,18 @@ export const DashboardView = () => {
 
         {/* Donut Chart */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <h3 className="text-base font-semibold text-foreground mb-5">Sessões do mês</h3>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-base font-semibold text-foreground">Sessões do mês</h3>
+            <button onClick={() => onNavigate("sessions")} className="text-sm text-[hsl(var(--text-link))] hover:underline flex items-center gap-1">
+              Ver todas <ChevronRight size={14} />
+            </button>
+          </div>
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="relative w-40 h-40 flex-shrink-0">
               <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-neutral-border))" strokeWidth="3.5" strokeDasharray={`${cancelledDash}, ${100 - cancelledDash}`} strokeDashoffset="0" />
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-error-border))" strokeWidth="3.5" strokeDasharray={`${pendingDash}, ${100 - pendingDash}`} strokeDashoffset={`-${cancelledDash}`} />
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-success-border))" strokeWidth="3.5" strokeDasharray={`${paidDash}, ${100 - paidDash}`} strokeDashoffset={`-${cancelledDash + pendingDash}`} />
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-neutral-border))" strokeWidth="3.5" strokeDasharray={`${cancelledPct}, ${100 - cancelledPct}`} strokeDashoffset="0" />
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-error-border))" strokeWidth="3.5" strokeDasharray={`${pendingPct}, ${100 - pendingPct}`} strokeDashoffset={`-${cancelledPct}`} />
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="hsl(var(--status-success-border))" strokeWidth="3.5" strokeDasharray={`${paidPct}, ${100 - paidPct}`} strokeDashoffset={`-${cancelledPct + pendingPct}`} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-bold text-foreground">{totalSessionsMonth}</span>
@@ -153,12 +168,11 @@ export const DashboardView = () => {
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h3 className="text-base font-semibold text-foreground">Próximas sessões hoje</h3>
-          <button className="text-sm text-link hover:underline flex items-center gap-1">
+          <button onClick={() => onNavigate("sessions")} className="text-sm text-[hsl(var(--text-link))] hover:underline flex items-center gap-1">
             Ver todas <ChevronRight size={14} />
           </button>
         </div>
 
-        {/* Desktop */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -176,7 +190,7 @@ export const DashboardView = () => {
                   <td className="px-5 py-3 text-foreground">{row.name}</td>
                   <td className="px-5 py-3"><StatusBadge status={row.status} /></td>
                   <td className="px-5 py-3">
-                    <button className="text-link hover:underline text-sm flex items-center gap-1">
+                    <button onClick={() => onNavigate("sessions")} className="text-[hsl(var(--text-link))] hover:underline text-sm flex items-center gap-1">
                       Ver <ChevronRight size={14} />
                     </button>
                   </td>
@@ -186,16 +200,15 @@ export const DashboardView = () => {
           </table>
         </div>
 
-        {/* Mobile */}
         <div className="sm:hidden divide-y divide-border">
           {todaySessions.map((row, i) => (
-            <div key={i} className="p-4 space-y-2">
+            <button key={i} onClick={() => onNavigate("sessions")} className="w-full p-4 space-y-2 text-left hover:bg-muted/30 transition-colors">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground">{row.name}</span>
                 <StatusBadge status={row.status} />
               </div>
               <p className="text-sm text-muted-foreground">🕒 {row.time}</p>
-            </div>
+            </button>
           ))}
         </div>
       </div>
