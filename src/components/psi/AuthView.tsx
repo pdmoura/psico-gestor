@@ -1,8 +1,12 @@
-import { useState, FormEvent } from "react";
+import { useState, useRef, FormEvent } from "react";
 import { FormInput } from "./FormInput";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+
+const RATE_LIMIT_MS = 3000; // 3 seconds between attempts
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 60_000; // 1 minute lockout
 
 export const AuthView = () => {
   const { signIn, signUp, resetPassword } = useAuth();
@@ -11,10 +15,39 @@ export const AuthView = () => {
   const [loading, setLoading] = useState(false);
   const [emailErr, setEmailErr] = useState("");
 
+  // Rate limiting state
+  const attemptsRef = useRef(0);
+  const lastAttemptRef = useRef(0);
+  const lockoutUntilRef = useRef(0);
+
+  const checkRateLimit = (): boolean => {
+    const now = Date.now();
+    if (now < lockoutUntilRef.current) {
+      const secsLeft = Math.ceil((lockoutUntilRef.current - now) / 1000);
+      setEmailErr(`Muitas tentativas. Tente novamente em ${secsLeft}s.`);
+      return false;
+    }
+    if (now - lastAttemptRef.current < RATE_LIMIT_MS) {
+      setEmailErr("Aguarde alguns segundos antes de tentar novamente.");
+      return false;
+    }
+    attemptsRef.current++;
+    lastAttemptRef.current = now;
+    if (attemptsRef.current > MAX_ATTEMPTS) {
+      lockoutUntilRef.current = now + LOCKOUT_MS;
+      attemptsRef.current = 0;
+      setEmailErr("Muitas tentativas. Você foi bloqueado temporariamente por 1 minuto.");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
     setEmailErr("");
+    if (!checkRateLimit()) return;
+
+    setLoading(true);
     const fd = new FormData(e.currentTarget);
     const email = (fd.get("email") as string).trim();
     const password = fd.get("password") as string;
@@ -33,9 +66,14 @@ export const AuthView = () => {
       const { error } = await signIn(email, password);
       if (error) setEmailErr(error);
     } else {
+      if (password.length < 8) {
+        setEmailErr("A senha deve ter pelo menos 8 caracteres.");
+        setLoading(false);
+        return;
+      }
       const { error } = await signUp(email, password, name || "");
       if (error) { setEmailErr(error); }
-      else { toast.success("Conta criada! Verifique seu email para confirmar."); }
+      else { toast.success("Conta criada! Verifique seu email para confirmar o cadastro antes de fazer login."); }
     }
     setLoading(false);
   };
@@ -92,7 +130,12 @@ export const AuthView = () => {
             )}
             <FormInput label="Email" id="email" name="email" type="email" placeholder="seu@email.com" error={emailErr} required />
             {!isForgot && (
-              <FormInput label="Senha" id="password" name="password" type="password" placeholder="••••••••" required />
+              <>
+                <FormInput label="Senha" id="password" name="password" type="password" placeholder="••••••••" required />
+                {!isLogin && (
+                  <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
+                )}
+              </>
             )}
 
             {isLogin && !isForgot && (
@@ -117,7 +160,7 @@ export const AuthView = () => {
               </div>
               <p className="text-center text-sm text-muted-foreground">
                 {isLogin ? "Ainda não tem uma conta? " : "Já tem uma conta? "}
-                <button onClick={() => { setIsLogin(!isLogin); setEmailErr(""); }} className="font-medium text-[hsl(var(--text-link))] hover:underline">
+                <button onClick={() => { setIsLogin(!isLogin); setEmailErr(""); attemptsRef.current = 0; }} className="font-medium text-[hsl(var(--text-link))] hover:underline">
                   {isLogin ? "Criar conta gratuita" : "Entrar"}
                 </button>
               </p>

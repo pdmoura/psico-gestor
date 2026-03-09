@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Edit2, Archive, Plus, Users, Phone, DollarSign, Clock } from "lucide-react";
+import { Search, Edit2, Archive, Plus, Users, Phone, DollarSign, Clock, CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import { Modal } from "./Modal";
@@ -7,7 +7,11 @@ import { FormInput } from "./FormInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
+} from "@/components/ui/dialog";
 
 type Patient = Tables<"patients">;
 
@@ -19,6 +23,11 @@ export const PatientsView = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Bulk select
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
   const fetchPatients = async () => {
     const { data, error } = await supabase.from("patients").select("*").order("name");
@@ -74,6 +83,26 @@ export const PatientsView = () => {
     fetchPatients();
   };
 
+  // Bulk
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkArchive = async () => {
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from("patients").update({ status: "Inativo" }).in("id", ids);
+    if (error) { toast.error("Erro ao arquivar pacientes"); return; }
+    toast.success(`${ids.length} paciente(s) arquivado(s)`);
+    setSelectedIds(new Set());
+    setBulkMode(false);
+    setShowBulkConfirm(false);
+    fetchPatients();
+  };
+
   if (loading) return <div className="flex items-center justify-center py-16 text-muted-foreground">Carregando...</div>;
 
   return (
@@ -86,7 +115,21 @@ export const PatientsView = () => {
             <input type="text" placeholder="Buscar paciente..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-3 py-2 h-10 text-sm w-full sm:w-60 bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none transition-colors" />
           </div>
-          <Button onClick={() => openEditModal(null)} className="h-10 gap-2"><Plus size={16} /> Novo Paciente</Button>
+          <div className="flex items-center gap-2">
+            <Button variant={bulkMode ? "secondary" : "outline"} size="sm" onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}>
+              {bulkMode ? "Cancelar" : "Selecionar"}
+            </Button>
+            {bulkMode && selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                className="gap-1.5 bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
+                onClick={() => setShowBulkConfirm(true)}
+              >
+                <Archive size={14} /> Arquivar ({selectedIds.size})
+              </Button>
+            )}
+            <Button onClick={() => openEditModal(null)} className="h-10 gap-2"><Plus size={16} /> Novo Paciente</Button>
+          </div>
         </div>
       </div>
 
@@ -97,6 +140,7 @@ export const PatientsView = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
+                    {bulkMode && <th className="w-10 px-3 py-3" />}
                     <th className="text-left px-5 py-3 font-medium text-muted-foreground">Nome</th>
                     <th className="text-left px-5 py-3 font-medium text-muted-foreground">Contato</th>
                     <th className="text-left px-5 py-3 font-medium text-muted-foreground">Valor Sessão</th>
@@ -107,7 +151,17 @@ export const PatientsView = () => {
                 </thead>
                 <tbody>
                   {filtered.map((p) => (
-                    <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <tr key={p.id} className={cn(
+                      "border-b border-border last:border-0 hover:bg-muted/30 transition-colors",
+                      bulkMode && selectedIds.has(p.id) && "bg-primary/5"
+                    )}>
+                      {bulkMode && (
+                        <td className="px-3 py-3">
+                          <button onClick={() => toggleSelect(p.id)} className="p-1">
+                            {selectedIds.has(p.id) ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} className="text-muted-foreground" />}
+                          </button>
+                        </td>
+                      )}
                       <td className="px-5 py-3 font-medium text-foreground">{p.name}</td>
                       <td className="px-5 py-3">
                         <div className="text-foreground">{p.phone}</div>
@@ -119,7 +173,13 @@ export const PatientsView = () => {
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-1">
                           <button onClick={() => openEditModal(p)} className="p-2 text-[hsl(var(--text-link))] hover:bg-muted rounded-md transition-colors" aria-label="Editar"><Edit2 size={16} /></button>
-                          <button onClick={() => handleArchive(p)} className="p-2 text-muted-foreground hover:bg-muted rounded-md transition-colors" aria-label="Arquivar"><Archive size={16} /></button>
+                          <button
+                            onClick={() => handleArchive(p)}
+                            className="p-2 text-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10 rounded-md transition-colors"
+                            aria-label="Arquivar"
+                          >
+                            <Archive size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -130,9 +190,16 @@ export const PatientsView = () => {
 
             <div className="md:hidden divide-y divide-border">
               {filtered.map((p) => (
-                <div key={p.id} className="p-4 space-y-3">
+                <div key={p.id} className={cn("p-4 space-y-3", bulkMode && selectedIds.has(p.id) && "bg-primary/5")}>
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-foreground">{p.name}</span>
+                    <div className="flex items-center gap-2">
+                      {bulkMode && (
+                        <button onClick={() => toggleSelect(p.id)}>
+                          {selectedIds.has(p.id) ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} className="text-muted-foreground" />}
+                        </button>
+                      )}
+                      <span className="font-medium text-foreground">{p.name}</span>
+                    </div>
                     <StatusBadge status={p.status} />
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1.5">
@@ -142,7 +209,14 @@ export const PatientsView = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => openEditModal(p)}>Editar</Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleArchive(p)}>{p.status === "Ativo" ? "Arquivar" : "Reativar"}</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleArchive(p)}
+                      className="text-[hsl(var(--archive-action))] hover:text-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
+                    >
+                      {p.status === "Ativo" ? "Arquivar" : "Reativar"}
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -186,6 +260,29 @@ export const PatientsView = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Bulk Archive Confirmation Dialog */}
+      <Dialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar arquivamento</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja arquivar {selectedIds.size} paciente(s)? Eles serão marcados como inativos.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button
+              className="bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
+              onClick={handleBulkArchive}
+            >
+              <Archive size={14} className="mr-1.5" /> Arquivar pacientes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Archive, CheckSquare, Square } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
+} from "@/components/ui/dialog";
 
 interface SessionRow {
   id: string;
@@ -27,12 +30,19 @@ interface SessionRow {
   hour: number;
 }
 
+interface PatientOption {
+  id: string;
+  name: string;
+  session_value: number | null;
+  fixed_schedule: string | null;
+}
+
 const today = new Date();
 
 export const SessionsView = () => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [patients, setPatients] = useState<{ id: string; name: string }[]>([]);
+  const [patients, setPatients] = useState<PatientOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -42,10 +52,20 @@ export const SessionsView = () => {
   const [newHourDefault, setNewHourDefault] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
+  // Auto-fill from patient
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [autoValue, setAutoValue] = useState("200");
+  const [autoTime, setAutoTime] = useState("");
+
+  // Bulk select
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+
   const fetchData = async () => {
     const [sessRes, patRes] = await Promise.all([
       supabase.from("sessions").select("*, patients(name)").order("date", { ascending: true }),
-      supabase.from("patients").select("id, name").eq("status", "Ativo").order("name"),
+      supabase.from("patients").select("id, name, session_value, fixed_schedule").eq("status", "Ativo").order("name"),
     ]);
     if (sessRes.data) {
       setSessions(sessRes.data.map((s: any) => ({
@@ -68,6 +88,27 @@ export const SessionsView = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  // When patient changes in the new session form, auto-fill value & time
+  const handlePatientChange = useCallback((patientId: string) => {
+    setSelectedPatientId(patientId);
+    const pat = patients.find(p => p.id === patientId);
+    if (pat) {
+      setAutoValue(String(pat.session_value ?? 200));
+      // Try to parse fixed_schedule as HH:mm
+      if (pat.fixed_schedule) {
+        const match = pat.fixed_schedule.match(/(\d{1,2}):(\d{2})/);
+        if (match) {
+          setAutoTime(`${match[1].padStart(2, "0")}:${match[2]}`);
+        }
+      } else {
+        setAutoTime(newHourDefault ? `${String(newHourDefault).padStart(2, "0")}:00` : "");
+      }
+    } else {
+      setAutoValue("200");
+      setAutoTime("");
+    }
+  }, [patients, newHourDefault]);
+
   const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
   const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
@@ -83,6 +124,9 @@ export const SessionsView = () => {
   const openNewSession = (date?: Date, hour?: number) => {
     setNewDate(date || undefined);
     setNewHourDefault(hour);
+    setSelectedPatientId("");
+    setAutoValue("200");
+    setAutoTime(hour ? `${String(hour).padStart(2, "0")}:00` : "");
     setIsNewModalOpen(true);
   };
 
@@ -108,7 +152,6 @@ export const SessionsView = () => {
       value,
     });
 
-    // Also create a pending transaction
     if (!error) {
       await supabase.from("transactions").insert({
         user_id: user.id,
@@ -134,7 +177,6 @@ export const SessionsView = () => {
     if (error) { toast.error("Erro ao atualizar"); return; }
 
     if (paymentStatus) {
-      // Update corresponding transaction
       const session = sessions.find(s => s.id === sessionId);
       if (session) {
         await supabase.from("transactions").update({ status: paymentStatus }).eq("patient_id", session.patient_id).eq("date", format(session.date, "yyyy-MM-dd"));
@@ -143,6 +185,26 @@ export const SessionsView = () => {
 
     toast.success("Sessão atualizada!");
     setIsModalOpen(false);
+    fetchData();
+  };
+
+  // Bulk archive
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkArchive = async () => {
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from("sessions").update({ status: "Cancelado" }).in("id", ids);
+    if (error) { toast.error("Erro ao arquivar sessões"); return; }
+    toast.success(`${ids.length} sessão(ões) arquivada(s)`);
+    setSelectedIds(new Set());
+    setBulkMode(false);
+    setShowBulkConfirm(false);
     fetchData();
   };
 
@@ -170,7 +232,21 @@ export const SessionsView = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-foreground">Agenda de Sessões</h2>
-        <Button className="gap-2" onClick={() => openNewSession()}><Plus size={16} /> Nova Sessão</Button>
+        <div className="flex items-center gap-2">
+          <Button variant={bulkMode ? "secondary" : "outline"} size="sm" onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}>
+            {bulkMode ? "Cancelar seleção" : "Selecionar"}
+          </Button>
+          {bulkMode && selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              className="gap-1.5 bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
+              onClick={() => setShowBulkConfirm(true)}
+            >
+              <Archive size={14} /> Arquivar ({selectedIds.size})
+            </Button>
+          )}
+          <Button className="gap-2" onClick={() => openNewSession()}><Plus size={16} /> Nova Sessão</Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
@@ -202,11 +278,18 @@ export const SessionsView = () => {
                   <div key={di} className={`border-r border-border last:border-r-0 relative p-1 cursor-pointer hover:bg-muted/30 transition-colors ${isSameDay(day, today) ? "bg-primary/[0.02]" : ""}`}
                     onDoubleClick={() => !session && openNewSession(day, hour)}>
                     {session && (
-                      <button onClick={() => { setSelectedSession(session); setIsModalOpen(true); }}
-                        className={`w-full h-[52px] ${colors!.bg} border-l-4 ${colors!.border} rounded p-2 text-left hover:shadow-md transition-all`}>
-                        <p className="text-xs font-semibold text-foreground truncate">{session.patient_name}</p>
-                        <p className="text-[10px] text-muted-foreground">{session.start_time} - {session.end_time}</p>
-                      </button>
+                      <div className="relative">
+                        {bulkMode && (
+                          <button onClick={() => toggleSelect(session.id)} className="absolute -top-0.5 -left-0.5 z-10 p-0.5">
+                            {selectedIds.has(session.id) ? <CheckSquare size={14} className="text-primary" /> : <Square size={14} className="text-muted-foreground" />}
+                          </button>
+                        )}
+                        <button onClick={() => { if (!bulkMode) { setSelectedSession(session); setIsModalOpen(true); } else toggleSelect(session.id); }}
+                          className={`w-full h-[52px] ${colors!.bg} border-l-4 ${colors!.border} rounded p-2 text-left hover:shadow-md transition-all`}>
+                          <p className="text-xs font-semibold text-foreground truncate">{session.patient_name}</p>
+                          <p className="text-[10px] text-muted-foreground">{session.start_time} - {session.end_time}</p>
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
@@ -226,10 +309,17 @@ export const SessionsView = () => {
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">{formatDayLabel(dateKey)}</h3>
             <div className="space-y-3">
               {daySessions.map((s) => (
-                <button key={s.id} onClick={() => { setSelectedSession(s); setIsModalOpen(true); }}
-                  className="w-full bg-card border border-border rounded-xl p-4 text-left shadow-sm active:scale-[0.98] transition-transform">
+                <button key={s.id}
+                  onClick={() => { if (!bulkMode) { setSelectedSession(s); setIsModalOpen(true); } else toggleSelect(s.id); }}
+                  className={cn(
+                    "w-full bg-card border border-border rounded-xl p-4 text-left shadow-sm active:scale-[0.98] transition-transform",
+                    bulkMode && selectedIds.has(s.id) && "ring-2 ring-primary"
+                  )}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-foreground">{s.patient_name}</span>
+                    <div className="flex items-center gap-2">
+                      {bulkMode && (selectedIds.has(s.id) ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} className="text-muted-foreground" />)}
+                      <span className="font-medium text-foreground">{s.patient_name}</span>
+                    </div>
                     <StatusBadge status={s.status} />
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -280,7 +370,13 @@ export const SessionsView = () => {
         <form onSubmit={handleCreateSession} className="space-y-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Paciente</label>
-            <select name="patient_id" required className="h-11 px-3 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none">
+            <select
+              name="patient_id"
+              required
+              value={selectedPatientId}
+              onChange={(e) => handlePatientChange(e.target.value)}
+              className="h-11 px-3 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none"
+            >
               <option value="">Selecionar paciente...</option>
               {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -300,7 +396,7 @@ export const SessionsView = () => {
             </Popover>
           </div>
 
-          <FormInput label="Horário" id="new-time" name="time" type="time" defaultValue={newHourDefault ? `${String(newHourDefault).padStart(2, "0")}:00` : ""} required />
+          <FormInput label="Horário" id="new-time" name="time" type="time" value={autoTime} onChange={(e) => setAutoTime(e.target.value)} required />
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Modalidade</label>
             <select name="type" className="w-full h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground focus:border-ring focus:outline-none">
@@ -308,13 +404,36 @@ export const SessionsView = () => {
               <option value="Presencial">Presencial</option>
             </select>
           </div>
-          <FormInput label="Valor" id="new-val" name="val" type="number" placeholder="200" defaultValue="200" />
+          <FormInput label="Valor" id="new-val" name="val" type="number" placeholder="200" value={autoValue} onChange={(e) => setAutoValue(e.target.value)} />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setIsNewModalOpen(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving}>{saving ? "Criando..." : "Criar Sessão"}</Button>
           </div>
         </form>
       </Modal>
+
+      {/* Bulk Archive Confirmation Dialog */}
+      <Dialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar arquivamento</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja arquivar {selectedIds.size} sessão(ões)? Elas serão marcadas como canceladas.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button
+              className="bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
+              onClick={handleBulkArchive}
+            >
+              <Archive size={14} className="mr-1.5" /> Arquivar sessões
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
