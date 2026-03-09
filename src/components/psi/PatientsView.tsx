@@ -27,7 +27,7 @@ export const PatientsView = () => {
   const [saving, setSaving] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showBulkToggleConfirm, setShowBulkToggleConfirm] = useState(false);
+  
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
