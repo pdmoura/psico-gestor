@@ -486,31 +486,58 @@ export const SessionsView = () => {
               <div><p className="text-muted-foreground text-xs mb-1">Pagamento</p><StatusBadge status={selectedSession.payment_status} /></div>
               <div className="col-span-2"><p className="text-muted-foreground text-xs mb-1">Status</p><StatusBadge status={selectedSession.status} /></div>
             </div>
-            <div className="flex flex-wrap justify-end gap-2 pt-2">
-              {selectedSession.status === "Agendado" && (
-                <>
-                  <Button variant="outline" onClick={() => updateSessionStatus(selectedSession.id, "Cancelado", "Cancelado")}>Cancelar Sessão</Button>
-                  <Button variant="outline" onClick={() => updateSessionStatus(selectedSession.id, "Realizado")}>Marcar Realizada</Button>
-                  <Button variant="outline" className="gap-1.5" onClick={() => {
-                    setRescheduleSessionId(selectedSession.id);
-                    setRescheduleDate(selectedSession.date);
-                    setRescheduleTime(selectedSession.start_time);
-                    setShowReschedule(true);
-                  }}>
-                    <CalendarClock size={14} /> Reagendar
+            <div className="space-y-3 pt-2">
+              {/* Primary Actions */}
+              <div className="grid grid-cols-2 gap-2">
+                {selectedSession.status === "Agendado" && (
+                  <>
+                    <Button 
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      onClick={() => updateSessionStatus(selectedSession.id, "Realizado")}
+                    >
+                      Marcar Realizada
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setRescheduleSessionId(selectedSession.id);
+                        setRescheduleDate(selectedSession.date);
+                        setRescheduleTime(selectedSession.start_time);
+                        setShowReschedule(true);
+                      }}
+                    >
+                      <CalendarClock size={14} /> Reagendar
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* Secondary Actions */}
+              <div className="grid grid-cols-3 gap-2">
+                {selectedSession.payment_status === "Pendente" && (
+                  <Button 
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={() => updateSessionStatus(selectedSession.id, selectedSession.status, "Pago")}
+                  >
+                    Registrar Pagamento
                   </Button>
-                </>
-              )}
-              {selectedSession.payment_status === "Pendente" && (
-                <Button onClick={() => updateSessionStatus(selectedSession.id, selectedSession.status, "Pago")}>Registrar Pagamento</Button>
-              )}
-              <Button
-                variant="outline"
-                className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
-                onClick={() => { setDeleteSessionId(selectedSession.id); setShowDeleteConfirm(true); }}
-              >
-                <Trash2 size={14} /> Excluir
-              </Button>
+                )}
+                {selectedSession.status === "Agendado" && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => updateSessionStatus(selectedSession.id, "Cancelado", "Cancelado")}
+                  >
+                    Cancelar Sessão
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
+                  onClick={() => { setDeleteSessionId(selectedSession.id); setShowDeleteConfirm(true); }}
+                >
+                  <Trash2 size={14} /> Excluir
+                </Button>
+              </div>
             </div>
           </div>
         )}
