@@ -513,10 +513,10 @@ export const SessionsView = () => {
               </div>
 
               {/* Secondary Actions */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 {selectedSession.payment_status === "Pendente" && (
                   <Button 
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 text-sm"
                     onClick={() => updateSessionStatus(selectedSession.id, selectedSession.status, "Pago")}
                   >
                     Registrar Pagamento
@@ -525,6 +525,7 @@ export const SessionsView = () => {
                 {selectedSession.status === "Agendado" && (
                   <Button 
                     variant="outline"
+                    className="flex-1 text-sm"
                     onClick={() => updateSessionStatus(selectedSession.id, "Cancelado", "Cancelado")}
                   >
                     Cancelar Sessão
@@ -532,7 +533,7 @@ export const SessionsView = () => {
                 )}
                 <Button
                   variant="outline"
-                  className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
+                  className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10 flex-1 text-sm"
                   onClick={() => { setDeleteSessionId(selectedSession.id); setShowDeleteConfirm(true); }}
                 >
                   <Trash2 size={14} /> Excluir
