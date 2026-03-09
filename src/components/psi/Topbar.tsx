@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Menu, Bell, Moon, Sun, X } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface TopbarProps {
   title: string;
@@ -8,28 +9,10 @@ interface TopbarProps {
   toggleTheme: () => void;
 }
 
-interface Notification {
-  id: number;
-  title: string;
-  desc: string;
-  time: string;
-  read: boolean;
-}
-
-const initialNotifications: Notification[] = [
-  { id: 1, title: "Sessão confirmada", desc: "Carlos Andrade confirmou a sessão de hoje às 14:00.", time: "Há 10 min", read: false },
-  { id: 2, title: "Pagamento recebido", desc: "Luiza Ferreira pagou R$ 250,00 via PIX.", time: "Há 1h", read: false },
-  { id: 3, title: "Lembrete", desc: "Você tem 3 sessões agendadas para amanhã.", time: "Há 2h", read: false },
-  { id: 4, title: "Novo paciente", desc: "Marília Santos completou o cadastro.", time: "Há 5h", read: true },
-  { id: 5, title: "Sessão cancelada", desc: "Roberto Mendes cancelou a sessão de hoje às 17:00.", time: "Ontem", read: true },
-];
-
 export const Topbar = ({ title, onMenuClick, isDark, toggleTheme }: TopbarProps) => {
   const [showNotif, setShowNotif] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
   const ref = useRef<HTMLDivElement>(null);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -38,10 +21,6 @@ export const Topbar = ({ title, onMenuClick, isDark, toggleTheme }: TopbarProps)
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
 
   return (
     <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b border-border px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -88,22 +67,28 @@ export const Topbar = ({ title, onMenuClick, isDark, toggleTheme }: TopbarProps)
                 </div>
               </div>
               <div className="max-h-80 overflow-y-auto divide-y divide-border">
-                {notifications.map(n => (
-                  <div
-                    key={n.id}
-                    className={`px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors ${!n.read ? "bg-primary/5" : ""}`}
-                    onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))}
-                  >
-                    <div className="flex items-start gap-2">
-                      {!n.read && <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
-                      <div className={!n.read ? "" : "ml-4"}>
-                        <p className="text-sm font-medium text-foreground">{n.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{n.desc}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">{n.time}</p>
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    Nenhuma notificação no momento.
+                  </div>
+                ) : (
+                  notifications.map(n => (
+                    <div
+                      key={n.id}
+                      className={`px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors ${!n.read ? "bg-primary/5" : ""}`}
+                      onClick={() => markRead(n.id)}
+                    >
+                      <div className="flex items-start gap-2">
+                        {!n.read && <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
+                        <div className={!n.read ? "" : "ml-4"}>
+                          <p className="text-sm font-medium text-foreground">{n.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{n.desc}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">{n.time}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}
