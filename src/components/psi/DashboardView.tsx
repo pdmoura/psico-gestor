@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, CheckCircle, TrendingUp, AlertTriangle, ChevronRight } from "lucide-react";
+import { Users, CheckCircle, TrendingUp, AlertTriangle, ChevronRight, Clock } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
