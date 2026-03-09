@@ -374,24 +374,6 @@ export const PatientsView = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Toggle Confirmation */}
-      <Dialog open={showBulkToggleConfirm} onOpenChange={setShowBulkToggleConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar alteração de status</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja {bulkToggleLabel.toLowerCase()} {selectedIds.size} paciente(s)?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-            <Button onClick={handleBulkToggle}>
-              {allSelectedActive ? <ToggleLeft size={14} className="mr-1.5" /> : <ToggleRight size={14} className="mr-1.5" />}
-              {bulkToggleLabel} pacientes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Bulk Delete Confirmation */}
       <Dialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
