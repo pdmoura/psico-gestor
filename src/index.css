@@ -83,6 +83,14 @@
     --status-neutral-border: 216 12% 83%;
 
     --text-link: 196 58% 19%;
+
+    /* Archive / Inactive — WCAG AAA red tones */
+    --archive-action: 0 65% 38%;
+    --archive-action-foreground: 0 0% 100%;
+    --archive-action-hover: 0 65% 32%;
+    --status-inactive-text: 0 60% 30%;
+    --status-inactive-bg: 0 85% 97%;
+    --status-inactive-border: 0 60% 72%;
   }
 
   .dark {
