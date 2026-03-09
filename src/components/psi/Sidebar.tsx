@@ -1,6 +1,6 @@
 import { LayoutDashboard, Users, Calendar, TrendingUp, Settings, Palette, LogOut, X } from "lucide-react";
 
-export type ViewType = "dashboard" | "patients" | "sessions" | "finance" | "settings" | "specs";
+export type ViewType = "dashboard" | "patients" | "sessions" | "finance" | "settings";
 
 interface SidebarProps {
   isOpen: boolean;
