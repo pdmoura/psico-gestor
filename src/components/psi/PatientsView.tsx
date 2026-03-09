@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, Edit2, Archive, Plus, Users, Phone, DollarSign, Clock, CheckSquare, Square } from "lucide-react";
+import { Search, Edit2, Archive, Trash2, Plus, Users, Phone, DollarSign, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "./StatusBadge";
 import { Modal } from "./Modal";
 import { FormInput } from "./FormInput";
@@ -24,10 +25,14 @@ export const PatientsView = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Bulk select
+  // Bulk select (always visible)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkMode, setBulkMode] = useState(false);
-  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [showBulkArchiveConfirm, setShowBulkArchiveConfirm] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
+  // Single delete
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePatientId, setDeletePatientId] = useState<string | null>(null);
 
   const fetchPatients = async () => {
     const { data, error } = await supabase.from("patients").select("*").order("name");
@@ -83,6 +88,23 @@ export const PatientsView = () => {
     fetchPatients();
   };
 
+  const handleDeletePatient = async (id: string) => {
+    // Delete related sessions and transactions first
+    const { data: patientSessions } = await supabase.from("sessions").select("id").eq("patient_id", id);
+    if (patientSessions && patientSessions.length > 0) {
+      const sessionIds = patientSessions.map(s => s.id);
+      await supabase.from("transactions").delete().in("session_id", sessionIds);
+      await supabase.from("sessions").delete().eq("patient_id", id);
+    }
+    await supabase.from("transactions").delete().eq("patient_id", id);
+    const { error } = await supabase.from("patients").delete().eq("id", id);
+    if (error) { toast.error("Erro ao excluir paciente"); return; }
+    toast.success("Paciente excluído!");
+    setShowDeleteConfirm(false);
+    setDeletePatientId(null);
+    fetchPatients();
+  };
+
   // Bulk
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -92,14 +114,40 @@ export const PatientsView = () => {
     });
   };
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(p => p.id)));
+    }
+  };
+
   const handleBulkArchive = async () => {
     const ids = Array.from(selectedIds);
     const { error } = await supabase.from("patients").update({ status: "Inativo" }).in("id", ids);
     if (error) { toast.error("Erro ao arquivar pacientes"); return; }
     toast.success(`${ids.length} paciente(s) arquivado(s)`);
     setSelectedIds(new Set());
-    setBulkMode(false);
-    setShowBulkConfirm(false);
+    setShowBulkArchiveConfirm(false);
+    fetchPatients();
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      const { data: patientSessions } = await supabase.from("sessions").select("id").eq("patient_id", id);
+      if (patientSessions && patientSessions.length > 0) {
+        const sessionIds = patientSessions.map(s => s.id);
+        await supabase.from("transactions").delete().in("session_id", sessionIds);
+        await supabase.from("sessions").delete().eq("patient_id", id);
+      }
+      await supabase.from("transactions").delete().eq("patient_id", id);
+    }
+    const { error } = await supabase.from("patients").delete().in("id", ids);
+    if (error) { toast.error("Erro ao excluir pacientes"); return; }
+    toast.success(`${ids.length} paciente(s) excluído(s)`);
+    setSelectedIds(new Set());
+    setShowBulkDeleteConfirm(false);
     fetchPatients();
   };
 
@@ -115,18 +163,25 @@ export const PatientsView = () => {
             <input type="text" placeholder="Buscar paciente..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-3 py-2 h-10 text-sm w-full sm:w-60 bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none transition-colors" />
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant={bulkMode ? "secondary" : "outline"} size="sm" onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}>
-              {bulkMode ? "Cancelar" : "Selecionar"}
-            </Button>
-            {bulkMode && selectedIds.size > 0 && (
-              <Button
-                size="sm"
-                className="gap-1.5 bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
-                onClick={() => setShowBulkConfirm(true)}
-              >
-                <Archive size={14} /> Arquivar ({selectedIds.size})
-              </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {selectedIds.size > 0 && (
+              <>
+                <Button
+                  size="sm"
+                  className="gap-1.5 bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
+                  onClick={() => setShowBulkArchiveConfirm(true)}
+                >
+                  <Archive size={14} /> Arquivar ({selectedIds.size})
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-[hsl(var(--archive-action))] border-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                >
+                  <Trash2 size={14} /> Excluir ({selectedIds.size})
+                </Button>
+              </>
             )}
             <Button onClick={() => openEditModal(null)} className="h-10 gap-2"><Plus size={16} /> Novo Paciente</Button>
           </div>
@@ -140,7 +195,14 @@ export const PatientsView = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    {bulkMode && <th className="w-10 px-3 py-3" />}
+                    <th className="w-10 px-3 py-3">
+                      {selectedIds.size > 0 && (
+                        <Checkbox
+                          checked={selectedIds.size === filtered.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      )}
+                    </th>
                     <th className="text-left px-5 py-3 font-medium text-muted-foreground">Nome</th>
                     <th className="text-left px-5 py-3 font-medium text-muted-foreground">Contato</th>
                     <th className="text-left px-5 py-3 font-medium text-muted-foreground">Valor Sessão</th>
@@ -153,15 +215,14 @@ export const PatientsView = () => {
                   {filtered.map((p) => (
                     <tr key={p.id} className={cn(
                       "border-b border-border last:border-0 hover:bg-muted/30 transition-colors",
-                      bulkMode && selectedIds.has(p.id) && "bg-primary/5"
+                      selectedIds.has(p.id) && "bg-primary/5"
                     )}>
-                      {bulkMode && (
-                        <td className="px-3 py-3">
-                          <button onClick={() => toggleSelect(p.id)} className="p-1">
-                            {selectedIds.has(p.id) ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} className="text-muted-foreground" />}
-                          </button>
-                        </td>
-                      )}
+                      <td className="px-3 py-3">
+                        <Checkbox
+                          checked={selectedIds.has(p.id)}
+                          onCheckedChange={() => toggleSelect(p.id)}
+                        />
+                      </td>
                       <td className="px-5 py-3 font-medium text-foreground">{p.name}</td>
                       <td className="px-5 py-3">
                         <div className="text-foreground">{p.phone}</div>
@@ -180,6 +241,13 @@ export const PatientsView = () => {
                           >
                             <Archive size={16} />
                           </button>
+                          <button
+                            onClick={() => { setDeletePatientId(p.id); setShowDeleteConfirm(true); }}
+                            className="p-2 text-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10 rounded-md transition-colors"
+                            aria-label="Excluir"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -189,15 +257,23 @@ export const PatientsView = () => {
             </div>
 
             <div className="md:hidden divide-y divide-border">
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-muted/30">
+                  <Checkbox
+                    checked={selectedIds.size === filtered.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <span className="text-sm text-muted-foreground">Selecionar todos</span>
+                </div>
+              )}
               {filtered.map((p) => (
-                <div key={p.id} className={cn("p-4 space-y-3", bulkMode && selectedIds.has(p.id) && "bg-primary/5")}>
+                <div key={p.id} className={cn("p-4 space-y-3", selectedIds.has(p.id) && "bg-primary/5")}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {bulkMode && (
-                        <button onClick={() => toggleSelect(p.id)}>
-                          {selectedIds.has(p.id) ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} className="text-muted-foreground" />}
-                        </button>
-                      )}
+                      <Checkbox
+                        checked={selectedIds.has(p.id)}
+                        onCheckedChange={() => toggleSelect(p.id)}
+                      />
                       <span className="font-medium text-foreground">{p.name}</span>
                     </div>
                     <StatusBadge status={p.status} />
@@ -216,6 +292,14 @@ export const PatientsView = () => {
                       className="text-[hsl(var(--archive-action))] hover:text-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
                     >
                       {p.status === "Ativo" ? "Arquivar" : "Reativar"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setDeletePatientId(p.id); setShowDeleteConfirm(true); }}
+                      className="text-[hsl(var(--archive-action))] hover:text-[hsl(var(--archive-action))] hover:bg-[hsl(var(--archive-action))]/10"
+                    >
+                      Excluir
                     </Button>
                   </div>
                 </div>
@@ -261,8 +345,29 @@ export const PatientsView = () => {
         </form>
       </Modal>
 
-      {/* Bulk Archive Confirmation Dialog */}
-      <Dialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+      {/* Single Delete Confirm */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir paciente</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir este paciente? Todas as sessões e transações associadas também serão excluídas. Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+            <Button
+              className="bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
+              onClick={() => deletePatientId && handleDeletePatient(deletePatientId)}
+            >
+              <Trash2 size={14} className="mr-1.5" /> Excluir paciente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Archive Confirmation */}
+      <Dialog open={showBulkArchiveConfirm} onOpenChange={setShowBulkArchiveConfirm}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar arquivamento</DialogTitle>
@@ -271,14 +376,33 @@ export const PatientsView = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
-            </DialogClose>
+            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
             <Button
               className="bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
               onClick={handleBulkArchive}
             >
               <Archive size={14} className="mr-1.5" /> Arquivar pacientes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation */}
+      <Dialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir {selectedIds.size} paciente(s)? Todas as sessões e transações associadas também serão excluídas. Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+            <Button
+              className="bg-[hsl(var(--archive-action))] text-[hsl(var(--archive-action-foreground))] hover:bg-[hsl(var(--archive-action-hover))]"
+              onClick={handleBulkDelete}
+            >
+              <Trash2 size={14} className="mr-1.5" /> Excluir pacientes
             </Button>
           </DialogFooter>
         </DialogContent>
