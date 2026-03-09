@@ -193,6 +193,12 @@
   outline-offset: 2px !important;
 }
 
+/* Command input: prevent global focus outline from breaking popover layout */
+[cmdk-input-wrapper] input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
 /* Animations */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
