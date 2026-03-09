@@ -583,9 +583,9 @@ export const SessionsView = () => {
                   <Search size={14} className="ml-2 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-4rem)] p-0" align="start" sideOffset={4}>
+              <PopoverContent className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-4rem)] p-0 overflow-hidden" align="start" sideOffset={4}>
                 <Command className="max-h-60">
-                  <CommandInput placeholder="Buscar por nome..." className="h-9" />
+                  <CommandInput placeholder="Buscar por nome..." className="h-9 [&:focus-visible]:outline-none [&:focus-visible]:ring-0 [&:focus-visible]:ring-offset-0" />
                   <CommandList className="max-h-40 overflow-y-auto">
                     <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
                     <CommandGroup>
