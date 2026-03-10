@@ -49,7 +49,7 @@ export const Sidebar = ({ isOpen, currentView, onViewChange, onLogout, onCloseMo
         <div className="flex items-center justify-between p-5 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">P</div>
-            <span className="text-lg font-bold text-sidebar-primary-foreground">PsiGestão</span>
+            <span className="text-lg font-bold text-sidebar-primary-foreground">PsicoGestor</span>
           </div>
           <button onClick={onCloseMobile} className="lg:hidden p-1 text-sidebar-foreground hover:text-sidebar-primary-foreground" aria-label="Fechar menu">
             <X size={20} />
