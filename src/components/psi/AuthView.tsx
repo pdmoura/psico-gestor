@@ -91,7 +91,7 @@ export const AuthView = () => {
         <div className="relative z-10 text-center max-w-md animate-fade-up">
           <div className="flex items-center justify-center gap-3 mb-12">
             <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-white font-bold text-2xl">P</div>
-            <span className="text-2xl font-bold text-white">PsiGestão</span>
+            <span className="text-2xl font-bold text-white">PsicoGestor</span>
           </div>
 
           <svg viewBox="0 0 280 220" className="w-full max-w-[280px] mx-auto mb-10">
