@@ -115,7 +115,7 @@ export const AuthView = () => {
         <div className="w-full max-w-sm animate-fade-up">
           <div className="flex items-center justify-center gap-2 mb-8 lg:hidden">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl">P</div>
-            <span className="text-xl font-bold text-foreground">PsiGestão</span>
+            <span className="text-xl font-bold text-foreground">PsicoGestor</span>
           </div>
 
           <h1 className="text-2xl font-bold text-foreground mb-2">
