@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Edit2, Trash2, Plus, Users, Phone, DollarSign, Clock, ToggleLeft, ToggleRight } from "lucide-react";
+import { Search, Edit2, Trash2, Plus, Users, Phone, DollarSign, Clock, ToggleLeft, ToggleRight, Mail, MapPin, FileText, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +32,13 @@ export const PatientsView = () => {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePatientId, setDeletePatientId] = useState<string | null>(null);
+  const [viewPatient, setViewPatient] = useState<Patient | null>(null);
+
+  const getWhatsAppUrl = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    const number = digits.startsWith("55") ? digits : `55${digits}`;
+    return `https://wa.me/${number}`;
+  };
 
   const fetchPatients = async () => {
     const { data, error } = await supabase.from("patients").select("*").order("name");
@@ -242,7 +249,9 @@ export const PatientsView = () => {
                           onCheckedChange={() => toggleSelect(p.id)}
                         />
                       </td>
-                      <td className="px-5 py-3 font-medium text-foreground">{p.name}</td>
+                      <td className="px-5 py-3 font-medium text-foreground">
+                        <button onClick={() => setViewPatient(p)} className="hover:text-primary hover:underline transition-colors text-left">{p.name}</button>
+                      </td>
                       <td className="px-5 py-3">
                         <div className="text-foreground">{p.phone}</div>
                         <div className="text-xs text-muted-foreground">{p.email}</div>
@@ -282,7 +291,7 @@ export const PatientsView = () => {
                         checked={selectedIds.has(p.id)}
                         onCheckedChange={() => toggleSelect(p.id)}
                       />
-                      <span className="font-medium text-foreground">{p.name}</span>
+                      <button onClick={() => setViewPatient(p)} className="font-medium text-foreground hover:text-primary hover:underline transition-colors text-left">{p.name}</button>
                     </div>
                     <StatusBadge status={p.status} />
                   </div>
@@ -395,6 +404,80 @@ export const PatientsView = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Patient Details Modal */}
+      <Modal isOpen={!!viewPatient} onClose={() => setViewPatient(null)} title="Dados do Paciente" maxWidth="max-w-md">
+        {viewPatient && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">{viewPatient.name}</h3>
+              <StatusBadge status={viewPatient.status} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {viewPatient.phone && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Telefone</p>
+                  <div className="flex items-center gap-2">
+                    <Phone size={14} className="text-muted-foreground" />
+                    <span className="text-sm text-foreground">{viewPatient.phone}</span>
+                    <a
+                      href={getWhatsAppUrl(viewPatient.phone)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 rounded-md text-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,45%)]/10 transition-colors"
+                      aria-label="Enviar mensagem no WhatsApp"
+                    >
+                      <MessageCircle size={16} />
+                    </a>
+                  </div>
+                </div>
+              )}
+              {viewPatient.email && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <div className="flex items-center gap-2">
+                    <Mail size={14} className="text-muted-foreground" />
+                    <span className="text-sm text-foreground">{viewPatient.email}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Valor da Sessão</p>
+                <div className="flex items-center gap-2">
+                  <DollarSign size={14} className="text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">R$ {viewPatient.session_value}</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Horário Fixo</p>
+                <div className="flex items-center gap-2">
+                  <Clock size={14} className="text-muted-foreground" />
+                  <span className="text-sm text-foreground">{viewPatient.fixed_schedule || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            {viewPatient.notes && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Anotações</p>
+                <div className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg border border-border">
+                  <FileText size={14} className="text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{viewPatient.notes}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-border">
+              <Button variant="outline" onClick={() => setViewPatient(null)}>Fechar</Button>
+              <Button onClick={() => { setViewPatient(null); openEditModal(viewPatient); }}>Editar Paciente</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
