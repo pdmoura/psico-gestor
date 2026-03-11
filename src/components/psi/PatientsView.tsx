@@ -249,7 +249,9 @@ export const PatientsView = () => {
                           onCheckedChange={() => toggleSelect(p.id)}
                         />
                       </td>
-                      <td className="px-5 py-3 font-medium text-foreground">{p.name}</td>
+                      <td className="px-5 py-3 font-medium text-foreground">
+                        <button onClick={() => setViewPatient(p)} className="hover:text-primary hover:underline transition-colors text-left">{p.name}</button>
+                      </td>
                       <td className="px-5 py-3">
                         <div className="text-foreground">{p.phone}</div>
                         <div className="text-xs text-muted-foreground">{p.email}</div>
