@@ -404,6 +404,80 @@ export const PatientsView = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Patient Details Modal */}
+      <Modal isOpen={!!viewPatient} onClose={() => setViewPatient(null)} title="Dados do Paciente" maxWidth="max-w-md">
+        {viewPatient && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">{viewPatient.name}</h3>
+              <StatusBadge status={viewPatient.status} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {viewPatient.phone && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Telefone</p>
+                  <div className="flex items-center gap-2">
+                    <Phone size={14} className="text-muted-foreground" />
+                    <span className="text-sm text-foreground">{viewPatient.phone}</span>
+                    <a
+                      href={getWhatsAppUrl(viewPatient.phone)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 rounded-md text-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,45%)]/10 transition-colors"
+                      aria-label="Enviar mensagem no WhatsApp"
+                    >
+                      <MessageCircle size={16} />
+                    </a>
+                  </div>
+                </div>
+              )}
+              {viewPatient.email && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <div className="flex items-center gap-2">
+                    <Mail size={14} className="text-muted-foreground" />
+                    <span className="text-sm text-foreground">{viewPatient.email}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Valor da Sessão</p>
+                <div className="flex items-center gap-2">
+                  <DollarSign size={14} className="text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">R$ {viewPatient.session_value}</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Horário Fixo</p>
+                <div className="flex items-center gap-2">
+                  <Clock size={14} className="text-muted-foreground" />
+                  <span className="text-sm text-foreground">{viewPatient.fixed_schedule || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            {viewPatient.notes && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Anotações</p>
+                <div className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg border border-border">
+                  <FileText size={14} className="text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{viewPatient.notes}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-border">
+              <Button variant="outline" onClick={() => setViewPatient(null)}>Fechar</Button>
+              <Button onClick={() => { setViewPatient(null); openEditModal(viewPatient); }}>Editar Paciente</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
