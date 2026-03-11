@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Users, CheckCircle, TrendingUp, AlertTriangle, ChevronRight, Clock } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
+import { DashboardChartModal, type SessionDetail } from "./DashboardChartModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay } from "date-fns";
@@ -11,21 +12,39 @@ interface DashboardViewProps {
   onNavigate: (view: ViewType) => void;
 }
 
+interface MonthData {
+  month: string;
+  key: string;
+  val: number;
+  sessions: SessionDetail[];
+}
+
 export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   const { user } = useAuth();
   const [activePatients, setActivePatients] = useState(0);
   const [monthSessions, setMonthSessions] = useState({ total: 0, paid: 0, pending: 0, cancelled: 0 });
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [pendingRevenue, setPendingRevenue] = useState(0);
-  const [barData, setBarData] = useState<{ month: string; val: number }[]>([]);
+  const [barData, setBarData] = useState<MonthData[]>([]);
   const [todaySessions, setTodaySessions] = useState<{ time: string; name: string; status: string; id: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState("");
 
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalSessions, setModalSessions] = useState<SessionDetail[]>([]);
+
+  // Current month session details for donut chart
+  const [currentMonthDetails, setCurrentMonthDetails] = useState<{
+    paid: SessionDetail[];
+    pending: SessionDetail[];
+    cancelled: SessionDetail[];
+  }>({ paid: [], pending: [], cancelled: [] });
+
   useEffect(() => {
     if (!user) return;
 
-    // Get display name
     const metaName = user.user_metadata?.full_name;
     if (metaName) {
       setDisplayName(metaName);
@@ -40,15 +59,19 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
       const todayStr = format(startOfDay(now), "yyyy-MM-dd");
 
-      const [patientsRes, sessionsRes, todayRes, transRes] = await Promise.all([
+      // For the bar chart: fetch sessions from last 8 months with patient names
+      const eightMonthsAgo = format(startOfMonth(subMonths(now, 7)), "yyyy-MM-dd");
+
+      const [patientsRes, sessionsRes, todayRes, allSessionsRes] = await Promise.all([
         supabase.from("patients").select("id", { count: "exact" }).eq("status", "Ativo"),
-        supabase.from("sessions").select("status, payment_status, value").gte("date", monthStart).lte("date", monthEnd),
+        supabase.from("sessions").select("status, payment_status, value, date, patients(name)").gte("date", monthStart).lte("date", monthEnd),
         supabase.from("sessions").select("id, start_time, status, patients(name)").eq("date", todayStr).order("start_time"),
-        supabase.from("transactions").select("date, value, status").eq("status", "Pago"),
+        supabase.from("sessions").select("status, payment_status, value, date, patients(name)").gte("date", eightMonthsAgo).lte("date", monthEnd),
       ]);
 
       setActivePatients(patientsRes.count || 0);
 
+      // Current month KPIs
       const sess = sessionsRes.data || [];
       const paid = sess.filter(s => s.payment_status === "Pago").length;
       const pending = sess.filter(s => s.payment_status === "Pendente").length;
@@ -60,6 +83,22 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       setTotalRevenue(rev);
       setPendingRevenue(pend);
 
+      // Current month details for donut
+      const toDetail = (s: any): SessionDetail => ({
+        patientName: (s.patients as any)?.name || "—",
+        date: s.date,
+        value: s.value,
+        status: s.status,
+        paymentStatus: s.payment_status,
+      });
+
+      setCurrentMonthDetails({
+        paid: sess.filter(s => s.payment_status === "Pago").map(toDetail),
+        pending: sess.filter(s => s.payment_status === "Pendente" && s.status !== "Cancelado").map(toDetail),
+        cancelled: sess.filter(s => s.status === "Cancelado").map(toDetail),
+      });
+
+      // Today sessions
       setTodaySessions((todayRes.data || []).map((s: any) => ({
         id: s.id,
         time: s.start_time?.substring(0, 5) || "",
@@ -67,20 +106,33 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
         status: s.status,
       })));
 
-      const trans = transRes.data || [];
-      const months: { month: string; val: number }[] = [];
+      // Bar chart: group all sessions by month (revenue = paid sessions)
+      const allSess = allSessionsRes.data || [];
+      const months: MonthData[] = [];
       for (let i = 7; i >= 0; i--) {
         const d = subMonths(now, i);
         const key = format(d, "yyyy-MM");
         const label = format(d, "MMM", { locale: ptBR }).charAt(0).toUpperCase() + format(d, "MMM", { locale: ptBR }).slice(1);
-        const total = trans.filter(t => t.date.startsWith(key)).reduce((s, t) => s + t.value, 0);
-        months.push({ month: label, val: total });
+        const monthSess = allSess.filter(t => t.date.startsWith(key) && t.payment_status === "Pago");
+        const total = monthSess.reduce((s, t) => s + t.value, 0);
+        months.push({
+          month: label,
+          key,
+          val: total,
+          sessions: monthSess.map(toDetail),
+        });
       }
       setBarData(months);
       setLoading(false);
     };
     fetchDashboard();
   }, [user]);
+
+  const openModal = (title: string, sessions: SessionDetail[]) => {
+    setModalTitle(title);
+    setModalSessions(sessions);
+    setModalOpen(true);
+  };
 
   if (loading) return <div className="flex items-center justify-center py-16 text-muted-foreground">Carregando...</div>;
 
@@ -127,6 +179,7 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Bar Chart */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold text-foreground">Faturamento mensal</h3>
@@ -146,7 +199,12 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
-                    <div className="w-full bg-primary/80 rounded-t-md transition-all duration-500 hover:bg-primary min-w-[20px]" style={{ height: `${heightPct}%` }} />
+                    <button
+                      onClick={() => openModal(`Faturamento — ${d.month}`, d.sessions)}
+                      className="w-full bg-primary/80 rounded-t-md transition-all duration-500 hover:bg-primary min-w-[20px] cursor-pointer"
+                      style={{ height: `${heightPct}%` }}
+                      title={`Clique para ver detalhes de ${d.month}`}
+                    />
                     <span className="text-[10px] text-muted-foreground">{d.month}</span>
                   </div>
                 );
@@ -155,6 +213,7 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
           </div>
         </div>
 
+        {/* Sessions Donut Chart */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold text-foreground">Sessões do mês</h3>
@@ -174,23 +233,28 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
             </div>
             <div className="space-y-3 w-full">
               {[
-                { label: "Pagas", pct: `${paidPct}% (${monthSessions.paid})`, color: "bg-[hsl(var(--status-success-border))]" },
-                { label: "Pendentes", pct: `${pendingPct}% (${monthSessions.pending})`, color: "bg-[hsl(var(--status-error-border))]" },
-                { label: "Canceladas", pct: `${cancelledPct}% (${monthSessions.cancelled})`, color: "bg-[hsl(var(--status-neutral-border))]" },
+                { label: "Pagas", pct: `${paidPct}% (${monthSessions.paid})`, color: "bg-[hsl(var(--status-success-border))]", sessions: currentMonthDetails.paid },
+                { label: "Pendentes", pct: `${pendingPct}% (${monthSessions.pending})`, color: "bg-[hsl(var(--status-error-border))]", sessions: currentMonthDetails.pending },
+                { label: "Canceladas", pct: `${cancelledPct}% (${monthSessions.cancelled})`, color: "bg-[hsl(var(--status-neutral-border))]", sessions: currentMonthDetails.cancelled },
               ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between">
+                <button
+                  key={i}
+                  onClick={() => openModal(`Sessões ${item.label.toLowerCase()}`, item.sessions)}
+                  className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                >
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${item.color}`} />
                     <span className="text-sm text-foreground">{item.label}</span>
                   </div>
                   <span className="text-sm font-medium text-foreground">{item.pct}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
         </div>
       </div>
 
+      {/* Today's Sessions Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h3 className="text-base font-semibold text-foreground">Sessões de hoje</h3>
@@ -238,6 +302,13 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
           <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma sessão agendada para hoje.</div>
         )}
       </div>
+
+      <DashboardChartModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalTitle}
+        sessions={modalSessions}
+      />
     </div>
   );
 };
