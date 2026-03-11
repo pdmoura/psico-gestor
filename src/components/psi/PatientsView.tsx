@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Edit2, Trash2, Plus, Users, Phone, DollarSign, Clock, ToggleLeft, ToggleRight } from "lucide-react";
+import { Search, Edit2, Trash2, Plus, Users, Phone, DollarSign, Clock, ToggleLeft, ToggleRight, Mail, MapPin, FileText, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
