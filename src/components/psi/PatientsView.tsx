@@ -32,6 +32,13 @@ export const PatientsView = () => {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePatientId, setDeletePatientId] = useState<string | null>(null);
+  const [viewPatient, setViewPatient] = useState<Patient | null>(null);
+
+  const getWhatsAppUrl = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    const number = digits.startsWith("55") ? digits : `55${digits}`;
+    return `https://wa.me/${number}`;
+  };
 
   const fetchPatients = async () => {
     const { data, error } = await supabase.from("patients").select("*").order("name");
