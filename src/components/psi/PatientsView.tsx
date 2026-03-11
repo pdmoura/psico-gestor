@@ -291,7 +291,7 @@ export const PatientsView = () => {
                         checked={selectedIds.has(p.id)}
                         onCheckedChange={() => toggleSelect(p.id)}
                       />
-                      <span className="font-medium text-foreground">{p.name}</span>
+                      <button onClick={() => setViewPatient(p)} className="font-medium text-foreground hover:text-primary hover:underline transition-colors text-left">{p.name}</button>
                     </div>
                     <StatusBadge status={p.status} />
                   </div>
