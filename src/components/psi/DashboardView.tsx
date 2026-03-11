@@ -192,19 +192,21 @@ export const DashboardView = ({ onNavigate }: DashboardViewProps) => {
               <span>{Math.round(maxBar * 0.33 / 1000)}k</span>
               <span>0</span>
             </div>
-            <div className="flex-1 flex items-end gap-2 sm:gap-3 h-full">
+            <div className="flex-1 flex gap-2 sm:gap-3 h-full">
               {barData.map((d, i) => {
                 const heightPct = maxBar > 0 ? (d.val / maxBar) * 100 : 0;
                 const label = d.val >= 1000 ? `${(d.val / 1000).toFixed(1).replace(".0", "")}k` : String(d.val);
                 return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
                     <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
-                    <button
-                      onClick={() => openModal(`Faturamento — ${d.month}`, d.sessions)}
-                      className="w-full bg-primary/80 rounded-t-md transition-all duration-500 hover:bg-primary min-w-[20px] cursor-pointer"
-                      style={{ height: `${heightPct}%` }}
-                      title={`Clique para ver detalhes de ${d.month}`}
-                    />
+                    <div className="w-full flex-1 flex items-end">
+                      <button
+                        onClick={() => openModal(`Faturamento — ${d.month}`, d.sessions)}
+                        className="w-full bg-primary/80 rounded-t-md transition-all duration-500 hover:bg-primary cursor-pointer"
+                        style={{ height: `${Math.max(heightPct, d.val > 0 ? 4 : 0)}%` }}
+                        title={`Clique para ver detalhes de ${d.month}`}
+                      />
+                    </div>
                     <span className="text-[10px] text-muted-foreground">{d.month}</span>
                   </div>
                 );
