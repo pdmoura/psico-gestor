@@ -64,15 +64,15 @@ export const PatientsView = () => {
   const getMessageTemplates = (patientName: string) => [
     {
       label: "Confirmação + Pagamento",
-      text: `Olá, ${patientName}! \n\nTemos uma sessão agendada para hoje às (horário_sessão). \n\nComo a confirmação depende do pagamento prévio referente ao pacote que iniciaremos hoje, reencaminho, abaixo, dados para pagamento. \n\nAté breve! 🤎`,
+      text: `Olá, ${patientName}!\n\nTemos uma sessão agendada para hoje às (horário_sessão).\n\nComo a confirmação depende do pagamento prévio referente ao pacote que iniciaremos hoje, reencaminho, abaixo, dados para pagamento.\n\nAté breve! 🤎`,
     },
     {
       label: "Lembrete de sessão",
-      text: `Olá, ${patientName}! \n\nPassando para lembrar da nossa sessão agendada. \n\nAté breve! 🤎`,
+      text: `Olá, ${patientName}!\n\nPassando para lembrar da nossa sessão agendada.\n\nAté breve! 🤎`,
     },
     {
       label: "Reagendamento",
-      text: `Olá, ${patientName}! \n\nPreciso reagendar nossa próxima sessão. Podemos combinar um novo horário? \n\nAguardo seu retorno! 🤎`,
+      text: `Olá, ${patientName}!\n\nPreciso reagendar nossa próxima sessão. Podemos combinar um novo horário?\n\nAguardo seu retorno! 🤎`,
     },
   ];
 
