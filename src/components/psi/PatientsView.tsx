@@ -447,7 +447,7 @@ export const PatientsView = () => {
       </Dialog>
 
       {/* Patient Details Modal */}
-      <Modal isOpen={!!viewPatient} onClose={() => setViewPatient(null)} title="Dados do Paciente" maxWidth="max-w-md">
+      <Modal isOpen={!!viewPatient} onClose={() => setViewPatient(null)} title="Dados do Paciente" maxWidth="max-w-lg">
         {viewPatient && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
