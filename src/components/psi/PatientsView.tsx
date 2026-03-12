@@ -465,11 +465,11 @@ export const PatientsView = () => {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
-                          className="inline-flex items-center gap-0.5 p-1 rounded-md bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] transition-colors"
+                          className="inline-flex items-center gap-1 p-1.5 sm:p-2 rounded-md bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] transition-colors"
                           aria-label="Enviar mensagem no WhatsApp"
                         >
-                          <WhatsAppIcon className="w-4 h-4 text-[hsl(var(--primary-foreground))]" />
-                          <ChevronDown size={12} className="text-[hsl(var(--primary-foreground))]" />
+                          <WhatsAppIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[hsl(var(--primary-foreground))]" />
+                          <ChevronDown size={14} className="text-[hsl(var(--primary-foreground))]" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-56">
