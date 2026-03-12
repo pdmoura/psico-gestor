@@ -17,6 +17,7 @@ export type Database = {
       patients: {
         Row: {
           created_at: string
+          drive_link: string | null
           email: string | null
           fixed_schedule: string | null
           id: string
@@ -30,6 +31,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          drive_link?: string | null
           email?: string | null
           fixed_schedule?: string | null
           id?: string
@@ -43,6 +45,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          drive_link?: string | null
           email?: string | null
           fixed_schedule?: string | null
           id?: string
