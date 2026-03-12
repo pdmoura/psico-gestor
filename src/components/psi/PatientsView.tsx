@@ -64,15 +64,15 @@ export const PatientsView = () => {
   const getMessageTemplates = (patientName: string) => [
     {
       label: "Confirmação + Pagamento",
-      text: `Olá, ${patientName}! \n\nTemos uma sessão agendada para hoje às (horário_sessão). \n\nComo a confirmação depende do pagamento prévio referente ao pacote que iniciaremos hoje, reencaminho, abaixo, dados para pagamento. \n\nAté breve! 🤎`,
+      text: `Olá, ${patientName}!\n\nTemos uma sessão agendada para hoje às (horário_sessão).\n\nComo a confirmação depende do pagamento prévio referente ao pacote que iniciaremos hoje, reencaminho, abaixo, dados para pagamento.\n\nAté breve! 🤎`,
     },
     {
       label: "Lembrete de sessão",
-      text: `Olá, ${patientName}! \n\nPassando para lembrar da nossa sessão agendada. \n\nAté breve! 🤎`,
+      text: `Olá, ${patientName}!\n\nPassando para lembrar da nossa sessão agendada.\n\nAté breve! 🤎`,
     },
     {
       label: "Reagendamento",
-      text: `Olá, ${patientName}! \n\nPreciso reagendar nossa próxima sessão. Podemos combinar um novo horário? \n\nAguardo seu retorno! 🤎`,
+      text: `Olá, ${patientName}!\n\nPreciso reagendar nossa próxima sessão. Podemos combinar um novo horário?\n\nAguardo seu retorno! 🤎`,
     },
   ];
 
@@ -447,7 +447,7 @@ export const PatientsView = () => {
       </Dialog>
 
       {/* Patient Details Modal */}
-      <Modal isOpen={!!viewPatient} onClose={() => setViewPatient(null)} title="Dados do Paciente" maxWidth="max-w-md">
+      <Modal isOpen={!!viewPatient} onClose={() => setViewPatient(null)} title="Dados do Paciente" maxWidth="max-w-lg">
         {viewPatient && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
@@ -465,11 +465,11 @@ export const PatientsView = () => {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
-                          className="inline-flex items-center gap-0.5 p-1 rounded-md bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] transition-colors"
+                          className="inline-flex items-center gap-1 p-1.5 sm:p-2 rounded-md bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] transition-colors"
                           aria-label="Enviar mensagem no WhatsApp"
                         >
-                          <WhatsAppIcon className="w-4 h-4 text-[hsl(var(--primary-foreground))]" />
-                          <ChevronDown size={12} className="text-[hsl(var(--primary-foreground))]" />
+                          <WhatsAppIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[hsl(var(--primary-foreground))]" />
+                          <ChevronDown size={14} className="text-[hsl(var(--primary-foreground))]" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-56">
