@@ -388,6 +388,10 @@ export const PatientsView = () => {
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">Link do Google Drive (Prontuários)</label>
+            <input name="drive_link" type="url" className="h-11 px-3 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none" placeholder="https://drive.google.com/..." defaultValue={(selectedPatient as any)?.drive_link || ""} />
+          </div>
+          <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Anotações do Paciente</label>
             <textarea name="notes" className="h-24 px-3 py-2 text-sm bg-card border-2 border-border rounded-lg text-foreground focus:border-ring focus:outline-none resize-none" placeholder="Observações gerais..." defaultValue={selectedPatient?.notes || ""} />
           </div>
