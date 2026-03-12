@@ -58,7 +58,7 @@ export const PatientsView = () => {
     const digits = phone.replace(/\D/g, "");
     const number = digits.startsWith("55") ? digits : `55${digits}`;
     const base = `https://wa.me/${number}`;
-    return text ? `${base}?text=${encodeURIComponent(text)}` : base;
+    return `${base}?text=${encodeURIComponent(text ?? "")}`;
   };
 
   const getMessageTemplates = (patientName: string) => [
