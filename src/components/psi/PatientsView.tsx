@@ -457,15 +457,35 @@ export const PatientsView = () => {
                   <div className="flex items-center gap-2">
                     <Phone size={14} className="text-muted-foreground" />
                     <span className="text-sm text-foreground">{viewPatient.phone}</span>
-                    <a
-                      href={getWhatsAppUrl(viewPatient.phone)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1 rounded-md text-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,45%)]/10 transition-colors"
-                      aria-label="Enviar mensagem no WhatsApp"
-                    >
-                      <MessageCircle size={16} />
-                    </a>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="inline-flex items-center gap-0.5 p-1 rounded-md bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] transition-colors"
+                          aria-label="Enviar mensagem no WhatsApp"
+                        >
+                          <WhatsAppIcon className="w-4 h-4 text-[hsl(var(--primary-foreground))]" />
+                          <ChevronDown size={12} className="text-[hsl(var(--primary-foreground))]" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuLabel>Template de mensagem</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <a href={getWhatsAppUrl(viewPatient.phone)} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                            <WhatsAppIcon className="w-4 h-4 text-[hsl(142,70%,45%)] mr-2" />
+                            Conversa sem template
+                          </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {getMessageTemplates(viewPatient.name).map((tpl) => (
+                          <DropdownMenuItem key={tpl.label} asChild>
+                            <a href={getWhatsAppUrl(viewPatient.phone!, tpl.text)} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                              {tpl.label}
+                            </a>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               )}
@@ -494,6 +514,26 @@ export const PatientsView = () => {
                   <Clock size={14} className="text-muted-foreground" />
                   <span className="text-sm text-foreground">{viewPatient.fixed_schedule || "—"}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Google Drive Link */}
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Prontuários (Google Drive)</p>
+              <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border border-border">
+                <GoogleDriveIcon className="w-5 h-5 shrink-0" />
+                {(viewPatient as any).drive_link ? (
+                  <a
+                    href={(viewPatient as any).drive_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[hsl(var(--text-link))] hover:underline truncate flex items-center gap-1"
+                  >
+                    Abrir prontuários <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Nenhum link cadastrado</span>
+                )}
               </div>
             </div>
 
