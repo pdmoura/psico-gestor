@@ -54,11 +54,27 @@ export const PatientsView = () => {
   const [deletePatientId, setDeletePatientId] = useState<string | null>(null);
   const [viewPatient, setViewPatient] = useState<Patient | null>(null);
 
-  const getWhatsAppUrl = (phone: string) => {
+  const getWhatsAppUrl = (phone: string, text?: string) => {
     const digits = phone.replace(/\D/g, "");
     const number = digits.startsWith("55") ? digits : `55${digits}`;
-    return `https://wa.me/${number}`;
+    const base = `https://wa.me/${number}`;
+    return text ? `${base}?text=${encodeURIComponent(text)}` : base;
   };
+
+  const getMessageTemplates = (patientName: string) => [
+    {
+      label: "Confirmação + Pagamento",
+      text: `Olá, ${patientName}! \n\nTemos uma sessão agendada para hoje às (horário_sessão). \n\nComo a confirmação depende do pagamento prévio referente ao pacote que iniciaremos hoje, reencaminho, abaixo, dados para pagamento. \n\nAté breve! 🤎`,
+    },
+    {
+      label: "Lembrete de sessão",
+      text: `Olá, ${patientName}! \n\nPassando para lembrar da nossa sessão agendada. \n\nAté breve! 🤎`,
+    },
+    {
+      label: "Reagendamento",
+      text: `Olá, ${patientName}! \n\nPreciso reagendar nossa próxima sessão. Podemos combinar um novo horário? \n\nAguardo seu retorno! 🤎`,
+    },
+  ];
 
   const fetchPatients = async () => {
     const { data, error } = await supabase.from("patients").select("*").order("name");
