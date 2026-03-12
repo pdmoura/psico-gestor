@@ -105,6 +105,7 @@ export const PatientsView = () => {
       fixed_schedule: fd.get("fixed_schedule") as string,
       status: fd.get("status") as string,
       notes: fd.get("notes") as string,
+      drive_link: (fd.get("drive_link") as string) || null,
       user_id: user.id,
     };
 
